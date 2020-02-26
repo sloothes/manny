@@ -86,6 +86,8 @@
 		<script src="/manny/A/js/EditorControls.js"></script>
 
 		<script>
+			
+			debugMode = true; // important!
 
 			Number.prototype.format = function (){
 				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
@@ -101,13 +103,13 @@
 
 				var sidePanel = createSidePanel();
 				var loginTab = TabUI.add( "Login", "login-tab" );
+				var debugTab = TabUI.add( "Debug", "debug-tab" );
 				var avatarTab = TabUI.add( "Avatar", "avatar-tab" );
 				var controlTab = TabUI.add( "Control", "control-tab" );
-				var settingsTab = TabUI.add( "Settings", "settings-tab" );
 				var animationTab = TabUI.add( "Animation", "animation-tab" );
 
 				document.body.appendChild( sidePanel );
-				TabUI.append("Control", "Avatar", "Animation", "Login", "Settings" );
+				TabUI.append("Control", "Avatar", "Animation", "Login", "Debug" );
 				TabUI.Animation.role.classList.add("active");
 				TabUI.Animation.tab.classList.add("in","active");
 
@@ -141,22 +143,21 @@
 
 		<script>
 
-		//	Import FBX
+		//	Debug tab.
 
 			(function(){
 
-				var input;
 			//	var fbx, animations;
-				var tab = TabUI.Settings.tab;
+				var tab = TabUI.Debug.tab;
 				var row = document.createElement("div");
 				row.style.cssText = "margin:10px 15px;height:35px;text-align:center;";
 				tab.appendChild( row );
 
-				var importFBX = ImportButton();
-				row.appendChild( importFBX );
+				var animationButton = ImportAnimationButton();
+				row.appendChild( animationButton );
 
-				function ImportButton() {
-					
+				function ImportAnimationButton() {
+
 					var button = document.createElement("div");
 					button.id = "import-fbx";
 					button.textContent = "Import FBX";
@@ -167,6 +168,7 @@
 					input.type = "file";
 					input.style.display = "none";
 
+					var k = 0; // important!
 					input.addEventListener( "change", function(){
 
 						var file = input.files[0];
@@ -190,8 +192,27 @@
 							console.log( group );
 
 							fbx = group; // debug!
-							animations = group.animations;
-							console.log( animations );
+
+						//	Add animations.
+							console.log( group.animations );
+
+							if ( group.animations.length ) {
+								var mixer = animationController.mixer;
+								var object = animationController.object;
+								var animations = group.animations;
+								var select = document.getElementById("animation-droplist");
+								animations.forEach( function( clip ){
+									++k; var name = k+"."+clip.name;
+									animationController.motion[ name ] = mixer.clipAction( clip, object );
+									select && select.appendChild( createOption( name ) );
+									function createOption(name){
+										var option = document.createElement("option");
+										option.text = option.value = name;
+										return option;
+									}
+								});
+							}
+
 
 						}, false );
 
@@ -623,7 +644,7 @@
 			//	Add group to scene.
 			//	must be add before animation controller.
 				localPlayer.add( group );
-				localPlayerHelper.visible = false;
+			//	localPlayerHelper.visible = false;
 				localPlayerController.direction += Math.PI; // important!
 
 		/*
@@ -754,6 +775,14 @@
 				debugMode && console.log( animationController ); 
 				localPlayerController.dispatchEvent( {type:"startIdling"} );
 
+			}, 
+
+			function onProgress(event){
+				console.log( event );
+			},
+
+			function onError( err ){
+				console.error(err);
 			});
 
 		</script>

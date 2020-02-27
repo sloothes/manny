@@ -324,13 +324,13 @@
 									var playerController = new MW.CharacterController( player, radius );
 									playerController.movementSpeed = 40;
 									playerController.direction = Math.random() * 2*Math.PI; // important!
-									player.rotation.y = playerController.direction; // important!
+									player.rotation.y = playerController.direction + Math.PI; // important!
 									world.add( playerController ); // important!
 
 								//	Update remote player rotation.
 									(function update(){
 										requestAnimationFrame( update );
-										player.rotation.y = playerController.direction;
+										player.rotation.y = playerController.direction + Math.PI;
 										if ( playerController.center.y < -radius ) {
 											playerController.center.set( 0, radius, 0 );
 										}

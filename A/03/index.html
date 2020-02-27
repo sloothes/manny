@@ -990,6 +990,7 @@
 					//	Bind events.
 						localPlayerController.addEventListener( "startWalking",  function () { 
 							animationController.play( "running" ); 
+							animationController.motion.running.reset(); // important!
 							droplistUpdated.dispatch( "running" ); 
 						});
 
@@ -1008,8 +1009,6 @@
 						var mixer = animationController.mixer;
 						var object = animationController.object;
 						animationController.motion.jumprun = mixer.clipAction( clip, object );
-					//	animationController.motion.jumprun.setLoop( THREE.LoopOnce, 0 );
-					//	animationController.motion.jumprun.clampWhenFinished = true;
 
 					//	Add option.
 						var select = document.getElementById("animation-droplist");
@@ -1038,8 +1037,8 @@
 					//	Bind events.
 						localPlayerController.addEventListener( "startJumping",  function () { 
 							if ( localPlayerController.isRunning ) {
-								animationController.motion.jumprun.reset();
 								animationController.play( "jumprun" );
+								animationController.motion.jumprun.reset(); // important!
 								droplistUpdated.dispatch( "jumprun" ); 
 							} else {
 								animationController.play( "wobbling" ); 

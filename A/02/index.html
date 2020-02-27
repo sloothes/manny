@@ -375,7 +375,9 @@
 										})();
 									}
 
-									playerController.isRunning = true;
+									setTimeout(function(){
+										playerController.isRunning = true;
+									});
 
 								}, false );
 								reader.readAsArrayBuffer( file );

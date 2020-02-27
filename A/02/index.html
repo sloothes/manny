@@ -110,8 +110,8 @@
 
 				document.body.appendChild( sidePanel );
 				TabUI.append("Control", "Avatar", "Animation", "Login", "Debug" );
-				TabUI.Animation.role.classList.add("active");
-				TabUI.Animation.tab.classList.add("in","active");
+				TabUI.Debug.role.classList.add("active");
+				TabUI.Debug.tab.classList.add("in","active");
 
 			})();
 
@@ -124,7 +124,6 @@
 			(function(){
 
 				var tab = TabUI.Animation.tab;
-
 				var row = document.createElement("h3");
 				row.textContent = "Animation";
 
@@ -139,6 +138,101 @@
 
 			})();
 
+			(function(){
+
+			//	Import Animation.
+
+				var tab = TabUI.Animation.tab;
+				var row = document.createElement("div");
+				row.style.cssText = "margin:10px 15px;height:35px;text-align:center;";
+
+				var button = ImportAnimationButton();
+
+				row.appendChild( button );
+				tab.appendChild( row );
+
+				function ImportAnimationButton() {
+
+					var button = document.createElement("div");
+					button.id = "import-animaton";
+					button.textContent = "Import animation";
+					button.style.cssText = "min-width:60%;width:fit-content;height:40px;font-size:large;text-overflow:ellipsis;";
+					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+
+					var input = document.createElement("input");
+					input.type = "file";
+					input.style.display = "none";
+					input.setAttribute("multiple", "");
+
+					var k = 0; // important!
+					input.addEventListener( "change", function(){
+
+						for ( var i = 0; i < input.files.length; i++ ) {
+							(function( file ){
+
+								var filename = file.name.replace(".fbx", "");
+								var extension = file.name.split( "." ).pop().toLowerCase();
+
+								var reader = new FileReader();
+
+								reader.addEventListener( "progress", function ( e ) {
+									var size = "(" + Math.floor( e.total / 1000 ).format() + " KB)";
+									var progress = Math.floor( ( e.loaded / e.total ) * 100 ) + "%";
+									console.log( "Loading", filename, size, progress );
+								});
+
+								reader.addEventListener( "load", function ( e ) {
+
+									var data = reader.result;
+									var loader = new THREE.FBXLoader();
+									var group = loader.parse( data );
+									group.name = filename;
+									console.log( group );
+
+									fbx = group; // debug!
+
+								//	Add animations.
+									console.log( group.animations );
+
+									if ( group.animations.length ) {
+										var mixer = animationController.mixer;
+										var object = animationController.object;
+										var animations = group.animations;
+										var select = document.getElementById("animation-droplist");
+										animations.forEach( function( clip ){
+											++k; var name = k+"."+filename;
+											animationController.motion[ name ] = mixer.clipAction( clip, object );
+											select && select.appendChild( createOption( name ) );
+											function createOption(name){
+												var option = document.createElement("option");
+												option.text = option.value = name;
+												return option;
+											}
+										});
+									}
+
+								}, false );
+								reader.readAsArrayBuffer( file );
+
+							})( input.files[i] );
+						}
+
+					});
+
+					button.addEventListener( "click", function(){
+						
+						input.value = "";
+						input.click();
+
+					});
+
+					button.appendChild( input );
+					return button;
+
+				}
+
+			})();
+
 		</script>
 
 		<script>
@@ -146,6 +240,8 @@
 		//	Debug tab.
 
 			(function(){
+
+			//	Import Player.
 
 				var tab = TabUI.Debug.tab;
 				var row = document.createElement("div");
@@ -176,7 +272,7 @@
 							(function( file ){
 
 								var filename = file.name;
-								var extension = filename.split( "." ).pop().toLowerCase();
+								var extension = file.name.split( "." ).pop().toLowerCase();
 
 								var reader = new FileReader();
 
@@ -192,9 +288,7 @@
 									var loader = new THREE.FBXLoader();
 									var group = loader.parse( data );
 									group.name = filename;
-
 									fbx = group; // debug!
-									console.log( group );
 
 									++k;
 								//	New player.
@@ -203,28 +297,87 @@
 									player.name = "player_"+k;
 
 								//	Random position.
+									var position = Math.random();
 									player.position.set(
-										parseInt( Math.sin( Math.random() * 2 * Math.PI ) * 100 ), // random x,
+										localPlayer.position.x + Math.floor( Math.sin( position * 2*Math.PI ) * 100 ), // random x,
 										radius,	// y: player radius,
-										parseInt( Math.cos( Math.random() * 2 * Math.PI ) * 100 ), // random z,
+										localPlayer.position.z + Math.floor( Math.cos( position * 2*Math.PI ) * 100 ), // random z,
 									);
 
 								//	Player helper.
 									var playerHelper = new THREE.Mesh(
-										new THREE.TetrahedronGeometry(10, 3),
+										new THREE.TetrahedronGeometry(10, 1),
 										new THREE.MeshBasicMaterial({ 
 											color: 0xffff00,  
 											wireframe: true,
 										})
 									);
+
 									playerHelper.name = "playerHelper_"+k;
 									player.add( playerHelper );
 									scene.add( player );
 
-								//	var playerController = new MW.CharacterController( player, radius );
+								//	Remote player controller.
+									var playerController = new MW.CharacterController( player, radius );
+									playerController.movementSpeed = 40;
+									playerController.direction = Math.random() * 2*Math.PI; // important!
+									player.rotation.y = playerController.direction; // important!
+									world.add( playerController ); // important!
+
+								//	Update remote player rotation.
+									(function update(){
+										requestAnimationFrame( update );
+										player.rotation.y = playerController.direction;
+										if ( playerController.center.y < -radius ) {
+											playerController.center.set( 0, radius, 0 );
+										}
+									})();
+
+								//	fbx is THREE.Group.
+									var s = 0.00033; group.scale.set(s,s,s); // important!
+									group.position.y = -playerController.radius;
+									debugMode && console.log( group ); 
+
+								//	Replace materials.
+									group.children.forEach( function( child ){
+										if ( child.type !== "SkinnedMesh" ) return;
+										if ( Array.isArray(child.material) ) {
+											child.material = child.material.map( function( item ){
+												var name = item.name;
+												return new THREE.MeshStandardMaterial({
+													name:name, skinning:true,
+												});
+											});
+										} else {
+											var name = child.material.name;
+											child.material = new THREE.MeshStandardMaterial({
+												name:name, skinning:true,
+											});
+										}
+									});
+
+								//	Add group to scene (before animation controller).
+									player.add( group );
+
+								//	Animation controller.
+									if ( group.animations.length ) {
+
+										var animationController = new MW.AnimationController( group );
+										debugMode && console.log( "animations:", Object.keys( animationController.motion ).join() );
+										animationController.play( Object.keys( animationController.motion )[0] );
+
+									//	Update animations.
+										var clock = new THREE.Clock();
+										(function update(){
+											requestAnimationFrame( update );
+											var delta = clock.getDelta();
+											animationController.update( delta );
+										})();
+									}
+
+									playerController.isRunning = true;
 
 								}, false );
-
 								reader.readAsArrayBuffer( file );
 
 							})( input.files[i] );
@@ -271,95 +424,6 @@
 			})();
 */
 
-			(function(){
-
-			//	var fbx, animations;
-				var tab = TabUI.Debug.tab;
-				var row = document.createElement("div");
-				row.style.cssText = "margin:10px 15px;height:35px;text-align:center;";
-				tab.appendChild( row );
-
-				var animationButton = ImportAnimationButton();
-				row.appendChild( animationButton );
-
-				function ImportAnimationButton() {
-
-					var button = document.createElement("div");
-					button.id = "import-animaton";
-					button.textContent = "Import animation";
-					button.style.cssText = "min-width:60%;width:fit-content;height:40px;font-size:large;text-overflow:ellipsis;";
-					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
-
-					var input = document.createElement("input");
-					input.type = "file";
-					input.style.display = "none";
-
-					var k = 0; // important!
-					input.addEventListener( "change", function(){
-
-						var file = input.files[0];
-						var filename = file.name;
-						var extension = filename.split( "." ).pop().toLowerCase();
-
-						var reader = new FileReader();
-
-						reader.addEventListener( "progress", function ( e ) {
-							var size = "(" + Math.floor( e.total / 1000 ).format() + " KB)";
-							var progress = Math.floor( ( e.loaded / e.total ) * 100 ) + "%";
-							console.log( "Loading", filename, size, progress );
-						});
-
-						reader.addEventListener( "load", function ( e ) {
-
-							var data = reader.result;
-							var loader = new THREE.FBXLoader();
-							var group = loader.parse( data );
-							group.name = filename;
-							console.log( group );
-
-							fbx = group; // debug!
-
-						//	Add animations.
-							console.log( group.animations );
-
-							if ( group.animations.length ) {
-								var mixer = animationController.mixer;
-								var object = animationController.object;
-								var animations = group.animations;
-								var select = document.getElementById("animation-droplist");
-								animations.forEach( function( clip ){
-									++k; var name = k+"."+clip.name;
-									animationController.motion[ name ] = mixer.clipAction( clip, object );
-									select && select.appendChild( createOption( name ) );
-									function createOption(name){
-										var option = document.createElement("option");
-										option.text = option.value = name;
-										return option;
-									}
-								});
-							}
-
-
-						}, false );
-
-						reader.readAsArrayBuffer( file );
-
-					});
-
-					button.addEventListener( "click", function(){
-						
-						input.value = "";
-						input.click();
-
-					});
-
-					button.appendChild( input );
-					return button;
-
-				}
-
-			})();
-
 		</script>
 
 		<script>
@@ -386,7 +450,7 @@
 
 			})();
 
-	/*
+/*
 		//	Editor Controls.
 			(function(){
 				controls = new THREE.EditorControls(camera);
@@ -394,7 +458,7 @@
 					camera.lookAt(controls.center); // important!
 				}
 			})();
-	*/
+*/
 
 		//  Camera Light.
 			(function(){
@@ -603,7 +667,7 @@
 					localPlayerController.direction = THREE.Math.degToRad( 360 ) - cameraFrontAngle + characterFrontAngle;
 				});
 
-			/*
+/*
 			//	"updated" event is fired by "cameraControls.update()"
 				cameraControls.addEventListener( "updated", function () {
 				//	it updates character front angle with the camera view.
@@ -613,7 +677,7 @@
 					var characterFrontAngle = keyInputControls.frontAngle;
 					localPlayerController.direction = THREE.Math.degToRad( 360 ) - cameraFrontAngle + characterFrontAngle;
 				});
-			*/
+*/
 
 				(function update(){
 					requestAnimationFrame( update );
@@ -773,7 +837,7 @@
 			//	localPlayerHelper.visible = false;
 				localPlayerController.direction += Math.PI; // important!
 
-		/*
+/*
 			//	Update position/rotation.
 				(function update(){
 					requestAnimationFrame( update );
@@ -797,7 +861,7 @@
 					clip.name = clip.name.replace("Armature|", "").toLowerCase();
 				});
 				debugMode && console.log( animations ); 
-		*/
+*/
 
 			//	Animation controller.
 				var animations = group.animations;
@@ -810,7 +874,7 @@
 					animationController.play( "idling"  ); 
 				});
 
-		/*
+/*
 			//	animationController.motion.jumping.setLoop( THREE.LoopOnce, 0 );
 			//	animationController.motion.jumping.clampWhenFinished = true;
 			//	animationController.motion.falldown.setLoop( THREE.LoopOnce, 0 );
@@ -862,7 +926,7 @@
 					animationController.motion.falldown.reset();
 					droplistUpdated.dispatch( "falldown" ); 
 				});
-		*/
+*/
 
 			//	Animation droplist.
 				(function(){
@@ -903,8 +967,10 @@
 
 			}, 
 
-			function onProgress(event){
-				console.log( event );
+			function onProgress( e ){
+				var size = "(" + Math.floor( e.total / 1000 ).format() + " KB)";
+				var progress = Math.floor( ( e.loaded / e.total ) * 100 ) + "%";
+				console.log( "Loaded", progress, "of", size,  );
 			},
 
 			function onError( err ){
@@ -914,7 +980,7 @@
 		</script>
 
 		<script>
-		/*
+/*
 			(function(){
 
 				var material = new THREE.MeshLambertMaterial();
@@ -942,7 +1008,7 @@
 			//	octree.importThreeMesh( box );
 
 			})();
-		*/
+*/
 		</script>
 
 	</body>

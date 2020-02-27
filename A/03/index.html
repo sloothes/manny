@@ -292,6 +292,8 @@
 									var group = loader.parse( data );
 									group.name = filename;
 
+									fbx = group; // debug!
+
 									++k;
 								//	New player.
 									var radius = 10; // player radius.
@@ -789,6 +791,9 @@
 
 		//	Avatar loader.
 
+			var Signal = signals.Signal;
+			mannyLoaded = new Signal();
+
 			var url = "/manny/characters/MannyCatwalkIdle01.fbx";
 			var loader = new THREE.FBXLoader();
 			loader.load( url, function( group ){
@@ -940,12 +945,6 @@
 						select.appendChild( createOption( name ) );
 					});
 
-					function createOption(name, i){
-						var option = document.createElement("option");
-						option.text = option.value = name;
-						return option;
-					}
-					
 					select.addEventListener("change", function(){
 						var name = select.value;
 						animationController.play( name );
@@ -958,8 +957,8 @@
 
 				})();
 
+			//	Animation controller update.
 				var clock = new THREE.Clock();
-
 				(function update(){
 					requestAnimationFrame( update );
 					var delta = clock.getDelta();
@@ -968,6 +967,104 @@
 
 				debugMode && console.log( animationController ); 
 				localPlayerController.dispatchEvent( {type:"startIdling"} );
+
+			//	LOAD ANIMATIONS.
+
+				mannyLoaded.add(function(){
+					var loader = new THREE.FBXLoader();
+					var url = "/manny/animations/Running.fbx";
+					loader.load( url, function( group ){
+						console.log( group.animations );
+
+					//	Add animation.
+						group.animations[0].name = "running";
+						var clip = group.animations[0];
+						var mixer = animationController.mixer;
+						var object = animationController.object;
+						animationController.motion.running = mixer.clipAction( clip, object );
+
+					//	Add option.
+						var select = document.getElementById("animation-droplist");
+						select && select.appendChild( createOption( clip.name ) );
+
+					//	Bind events.
+						localPlayerController.addEventListener( "startWalking",  function () { 
+							animationController.play( "running" ); 
+							droplistUpdated.dispatch( "running" ); 
+						});
+
+					});
+				});
+
+				mannyLoaded.add(function(){
+					var loader = new THREE.FBXLoader();
+					var url = "/manny/animations/RunningJump.fbx";
+					loader.load( url, function( group ){
+						console.log( group.animations );
+
+					//	Add animation.
+						group.animations[0].name = "jumprun";
+						var clip = group.animations[0];
+						var mixer = animationController.mixer;
+						var object = animationController.object;
+						animationController.motion.jumprun = mixer.clipAction( clip, object );
+					//	animationController.motion.jumprun.setLoop( THREE.LoopOnce, 0 );
+					//	animationController.motion.jumprun.clampWhenFinished = true;
+
+					//	Add option.
+						var select = document.getElementById("animation-droplist");
+						select && select.appendChild( createOption( clip.name ) );
+
+					});
+				});
+
+				mannyLoaded.add(function(){
+					var loader = new THREE.FBXLoader();
+					var url = "/manny/animations/Wobbling.fbx";
+					loader.load( url, function( group ){
+						console.log( group.animations );
+
+					//	Add animation.
+						group.animations[0].name = "wobbling";
+						var clip = group.animations[0];
+						var mixer = animationController.mixer;
+						var object = animationController.object;
+						animationController.motion.wobbling = mixer.clipAction( clip, object );
+
+					//	Add option.
+						var select = document.getElementById("animation-droplist");
+						select && select.appendChild( createOption( clip.name ) );
+
+					//	Bind events.
+						localPlayerController.addEventListener( "startJumping",  function () { 
+							if ( localPlayerController.isRunning ) {
+								animationController.motion.jumprun.reset();
+								animationController.play( "jumprun" );
+								droplistUpdated.dispatch( "jumprun" ); 
+							} else {
+								animationController.play( "wobbling" ); 
+								droplistUpdated.dispatch( "wobbling" ); 
+							}
+						});
+						localPlayerController.addEventListener( "startSliding", function () { 
+							animationController.play( "wobbling" ); 
+							droplistUpdated.dispatch( "wobbling" ); 
+						});
+						localPlayerController.addEventListener( "startFalling", function () { 
+							animationController.play( "wobbling" ); 
+							droplistUpdated.dispatch( "wobbling" ); 
+						});
+
+					});
+				});
+
+				function createOption(name){
+					var option = document.createElement("option");
+					option.text = option.value = name;
+					return option;
+				}
+
+				mannyLoaded.dispatch();
 
 			}, 
 
@@ -980,6 +1077,21 @@
 			function onError( err ){
 				console.error(err);
 			});
+
+		</script>
+
+		<script>
+
+			(function(){
+
+
+
+
+
+
+
+
+			})();
 
 		</script>
 

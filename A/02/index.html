@@ -127,6 +127,9 @@
 				var row = document.createElement("h3");
 				row.textContent = "Animation";
 
+				var Signal = signals.Signal;
+				droplistUpdated = new Signal();
+
 				var select = document.createElement("select");
 				select.id = "animation-droplist";
 				select.style.cssText = "width:180px;color:#000;" // float:left;
@@ -431,7 +434,6 @@
 		<script>
 
 			const w = 370;
-			Signal = signals.Signal;
 			MW.install( THREE ); // important!
 		//	dispatcher = new THREE.EventDispatcher(); // dispatcher.
 
@@ -836,7 +838,7 @@
 			//	Add group to scene.
 			//	must be add before animation controller.
 				localPlayer.add( group );
-			//	localPlayerHelper.visible = false;
+				localPlayerHelper.visible = false;
 				localPlayerController.direction += Math.PI; // important!
 
 /*
@@ -873,7 +875,8 @@
 				debugMode && console.log( "animations:", Object.keys( animationController.motion ).join() );
 				
 				localPlayerController.addEventListener( "startIdling",  function () { 
-					animationController.play( "idling"  ); 
+					animationController.play( "idling" ); 
+					droplistUpdated.dispatch( "idling" ); 
 				});
 
 /*
@@ -952,7 +955,7 @@
 						}
 					});
 					
-				//	droplistUpdated.add( function( name ){ select.value = name; });
+					droplistUpdated.add( function( name ){ select.value = name; });
 
 				})();
 

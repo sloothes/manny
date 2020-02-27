@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+
+		<title>manny (alpha 0.3)</title>
+
+		<meta charset="utf-8">
+		<meta name="generator" content="Three.js Editor">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+		<link rel="stylesheet" href="/css/joystick.css">
+		<link rel="stylesheet" href="/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/css/bootbox-dialoges.css">
+
+		<script src="/js/jquery.min.js"></script> 
+		<script src="/js/system.min.js"></script>
+		<script src="/js/signals.min.js"></script>
+		<script src="/js/inflate.min.js"></script>
+		<script src="/js/zangodb.min.js"></script>
+		<script src="/js/bootstrap.min.js"></script>
+
+		<style>
+
+			body {
+				font-family: sans-serif;
+				font-size: 13px;
+				background-color: #000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#loading-bar {
+				width:100%;
+				height:100%;
+				top:0; left:0;
+				position:fixed;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+			}
+
+			.middle > * {
+				top:0; 
+				left:0;
+				right:0;
+				bottom:0;
+				margin:auto;"
+				position:absolute;
+			}
+			
+			#joystick1 {
+				right: calc(40px + 370px);
+			}
+			
+			#jumpButton {
+				right: calc(105px + 370px);
+			}
+
+			.btn-terrain {
+				padding:0;
+				float:left;
+				width:55px;
+				height:55px;
+				border:1px solid;
+				border-radius:4px;
+				margin-right:4px;
+				margin-bottom:4px;
+				display:inline-block;
+			}
+			
+			.btn-terrain + .btn-terrain {
+				margin-right:4px;
+			}
+
+		</style>
+	</head>
+
+	<body ontouchstart="">
+
+		<script src="/manny/A/js/three.js"></script>
+		<script src="/manny/A/js/TabUI.js"></script>
+		<script src="/manny/A/js/MeshWalk.js"></script>
+		<script src="/manny/A/js/UVsDebug.js"></script>
+		<script src="/manny/A/js/FBXLoader.js"></script>
+		<script src="/manny/A/js/VirtualInput.js"></script>
+		<script src="/manny/A/js/EditorControls.js"></script>
+
+		<script>
+			
+			debugMode = true; // important!
+
+			Number.prototype.format = function (){
+				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+			};
+
+		</script>
+
+		<script>
+
+		//	TabUI
+
+			(function(){
+
+				var sidePanel = createSidePanel();
+				var loginTab = TabUI.add( "Login", "login-tab" );
+				var debugTab = TabUI.add( "Debug", "debug-tab" );
+				var avatarTab = TabUI.add( "Avatar", "avatar-tab" );
+				var controlTab = TabUI.add( "Control", "control-tab" );
+				var animationTab = TabUI.add( "Animation", "animation-tab" );
+
+				document.body.appendChild( sidePanel );
+				TabUI.append("Control", "Avatar", "Animation", "Login", "Debug" );
+				TabUI.Debug.role.classList.add("active");
+				TabUI.Debug.tab.classList.add("in","active");
+
+			})();
+
+		</script>
+
+		<script>
+
+		//	Animation tab.
+
+			(function(){
+
+				var tab = TabUI.Animation.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Animation";
+
+				var Signal = signals.Signal;
+				droplistUpdated = new Signal();
+
+				var select = document.createElement("select");
+				select.id = "animation-droplist";
+				select.style.cssText = "width:180px;color:#000;" // float:left;
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				row.appendChild( select );
+				tab.appendChild( row );
+
+			})();
+
+			(function(){
+
+			//	Import Animation.
+
+				var tab = TabUI.Animation.tab;
+				var row = document.createElement("div");
+				row.style.cssText = "margin:10px 15px;height:35px;text-align:center;";
+
+				var button = ImportAnimationButton();
+
+				row.appendChild( button );
+				tab.appendChild( row );
+
+				function ImportAnimationButton() {
+
+					var button = document.createElement("div");
+					button.id = "import-animaton";
+					button.textContent = "Import animation";
+					button.style.cssText = "min-width:60%;width:fit-content;height:40px;font-size:large;text-overflow:ellipsis;";
+					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+
+					var input = document.createElement("input");
+					input.type = "file";
+					input.style.display = "none";
+					input.setAttribute("multiple", "");
+
+					var k = 0; // important!
+					input.addEventListener( "change", function(){
+
+						for ( var i = 0; i < input.files.length; i++ ) {
+							(function( file ){
+
+								var filename = file.name.replace(".fbx", "");
+								var extension = file.name.split( "." ).pop().toLowerCase();
+
+								var reader = new FileReader();
+
+								reader.addEventListener( "progress", function ( e ) {
+									var size = "(" + Math.floor( e.total / 1000 ).format() + " KB)";
+									var progress = Math.floor( ( e.loaded / e.total ) * 100 ) + "%";
+									console.log( "Loading", filename, size, progress );
+								});
+
+								reader.addEventListener( "load", function ( e ) {
+
+									var data = reader.result;
+									var loader = new THREE.FBXLoader();
+									var group = loader.parse( data );
+									group.name = filename;
+									console.log( group );
+
+									fbx = group; // debug!
+
+								//	Add animations.
+									console.log( group.animations );
+
+									if ( group.animations.length ) {
+										var mixer = animationController.mixer;
+										var object = animationController.object;
+										var animations = group.animations;
+										var select = document.getElementById("animation-droplist");
+										animations.forEach( function( clip ){
+											++k; var name = k+"."+filename;
+											animationController.motion[ name ] = mixer.clipAction( clip, object );
+											select && select.appendChild( createOption( name ) );
+											function createOption(name){
+												var option = document.createElement("option");
+												option.text = option.value = name;
+												return option;
+											}
+										});
+									}
+
+								}, false );
+								reader.readAsArrayBuffer( file );
+
+							})( input.files[i] );
+						}
+
+					});
+
+					button.addEventListener( "click", function(){
+						
+						input.value = "";
+						input.click();
+
+					});
+
+					button.appendChild( input );
+					return button;
+
+				}
+
+			})();
+
+		</script>
+
+		<script>
+
+		//	Debug tab.
+
+			(function(){
+
+			//	Import Player.
+
+				var tab = TabUI.Debug.tab;
+				var row = document.createElement("div");
+				row.style.cssText = "margin:10px 15px;height:35px;text-align:center;";
+				tab.appendChild( row );
+
+				var playerButton = importPlayerButton();
+				row.appendChild( playerButton );
+
+				function importPlayerButton() {
+
+					var button = document.createElement("div");
+					button.id = "import-player";
+					button.textContent = "Import players";
+					button.style.cssText = "min-width:60%;width:fit-content;height:40px;font-size:large;text-overflow:ellipsis;";
+					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+
+					var input = document.createElement("input");
+					input.type = "file";
+					input.style.display = "none";
+					input.setAttribute("multiple", "");
+
+					var k = 0; // important!
+					input.addEventListener( "change", function(){
+						debugMode && console.log( input.files );
+						for ( var i = 0; i < input.files.length; i++ ){
+
+							(function( file ){
+
+								var filename = file.name;
+								var extension = file.name.split( "." ).pop().toLowerCase();
+
+								var reader = new FileReader();
+
+								reader.addEventListener( "progress", function ( e ) {
+									var size = "(" + Math.floor( e.total / 1000 ).format() + " KB)";
+									var progress = Math.floor( ( e.loaded / e.total ) * 100 ) + "%";
+									console.log( "Loading", filename, size, progress );
+								});
+
+								reader.addEventListener( "load", function ( e ) {
+
+									var data = reader.result;
+									var loader = new THREE.FBXLoader();
+									var group = loader.parse( data );
+									group.name = filename;
+
+									++k;
+								//	New player.
+									var radius = 10; // player radius.
+									var player = new THREE.Object3D();
+									player.name = "player_"+k;
+
+								//	Random position.
+									var position = Math.random();
+									player.position.set(
+										localPlayer.position.x + Math.floor( Math.sin( position * 2*Math.PI ) * 100 ), // random x,
+										radius,	// y: player radius,
+										localPlayer.position.z + Math.floor( Math.cos( position * 2*Math.PI ) * 100 ), // random z,
+									);
+
+								//	Player helper.
+									var playerHelper = new THREE.Mesh(
+										new THREE.TetrahedronGeometry(10, 0),
+										new THREE.MeshBasicMaterial({ 
+											color: 0xffff00,  
+											wireframe: true,
+										})
+									);
+
+									playerHelper.name = "playerHelper_"+k;
+									player.add( playerHelper );
+									scene.add( player );
+
+								//	Remote player controller.
+									var playerController = new MW.CharacterController( player, radius );
+									playerController.movementSpeed = 40;
+									playerController.direction = Math.random() * 2*Math.PI; // important!
+									player.rotation.y = playerController.direction + Math.PI; // important!
+									world.add( playerController ); // important!
+
+								//	Update remote player rotation.
+									(function update(){
+										requestAnimationFrame( update );
+										player.rotation.y = playerController.direction + Math.PI;
+										if ( playerController.center.y < -radius ) {
+											playerController.center.set( 0, radius, 0 );
+										}
+									})();
+
+								//	fbx is THREE.Group.
+									var s = 0.00033; group.scale.set(s,s,s); // important!
+									group.position.y = -playerController.radius;
+									debugMode && console.log( group ); 
+
+								//	Replace materials.
+									group.children.forEach( function( child ){
+										if ( child.type !== "SkinnedMesh" ) return;
+										if ( Array.isArray(child.material) ) {
+											child.material = child.material.map( function( item ){
+												var name = item.name;
+												return new THREE.MeshStandardMaterial({
+													name:name, skinning:true,
+												});
+											});
+										} else {
+											var name = child.material.name;
+											child.material = new THREE.MeshStandardMaterial({
+												name:name, skinning:true,
+											});
+										}
+									});
+
+								//	Add group to scene (before animation controller).
+									player.add( group );
+
+								//	Animation controller.
+									if ( group.animations.length ) {
+
+										var animationController = new MW.AnimationController( group );
+										debugMode && console.log( "animations:", Object.keys( animationController.motion ).join() );
+										animationController.play( Object.keys( animationController.motion )[0] );
+
+									//	Update animations.
+										var clock = new THREE.Clock();
+										(function update(){
+											requestAnimationFrame( update );
+											var delta = clock.getDelta();
+											animationController.update( delta );
+										})();
+									}
+
+									setTimeout(function(){
+										playerController.isRunning = true;
+									});
+
+								}, false );
+								reader.readAsArrayBuffer( file );
+
+							})( input.files[i] );
+
+						}
+					});
+
+					button.addEventListener( "click", function(){
+						
+						input.value = "";
+						input.click();
+
+					});
+
+					button.appendChild( input );
+					return button;
+
+				}
+
+			})();
+
+/*
+		//	remotePlayer Controller.
+			(function(){
+
+				var playerRadius = 10;
+				remotePlayer = new THREE.Object3D();
+				remotePlayer.position.set( 0, 10, -100 );
+				remotePlayer.name = "remotePlayer";
+
+				remotePlayerHelper = new THREE.Mesh(
+					new THREE.TetrahedronGeometry(10, 3),
+					new THREE.MeshBasicMaterial( { color: 0xffff00,  wireframe: true} )
+				);
+				remotePlayerHelper.name = "remoteHelper";
+				remotePlayer.add( remotePlayerHelper );
+
+				scene.add( remotePlayer );
+
+				remotePlayerController = new MW.CharacterController( remotePlayer, playerRadius );
+				remotePlayerController.movementSpeed = 40;
+				world.add( remotePlayerController ); // important!
+
+			})();
+*/
+
+		</script>
+
+		<script>
+
+			const w = 370;
+			MW.install( THREE ); // important!
+		//	dispatcher = new THREE.EventDispatcher(); // dispatcher.
+
+		//	Scene.
+			scene = new THREE.Scene();
+
+		//	Camera.
+			(function(){
+
+				var aspect = (window.innerWidth - w) / window.innerHeight;
+				camera = new THREE.PerspectiveCamera( 50, aspect, 1, 10000 );
+				camera.position.set(0, 20, 50);
+
+				window.addEventListener("resize", function onWindowResize() {
+					camera.aspect = (window.innerWidth - w) / window.innerHeight;
+					camera.updateProjectionMatrix();
+				});
+
+			})();
+
+/*
+		//	Editor Controls.
+			(function(){
+				controls = new THREE.EditorControls(camera);
+				if ( controls && controls instanceof THREE.EditorControls ) {
+					camera.lookAt(controls.center); // important!
+				}
+			})();
+*/
+
+		//  Camera Light.
+			(function(){
+
+				cameraLight = new THREE.DirectionalLight( 0xdfebff, 0.75 );
+				cameraLight.position.set( 0, 500, 300 );
+				cameraLight.castShadow = true;
+				cameraLight.shadow.mapSize.width  = Math.pow(2, 10); // 2048;
+				cameraLight.shadow.mapSize.height = Math.pow(2, 10); // 2048;
+
+				var d = 30;
+				cameraLight.shadow.camera.left = - d;
+				cameraLight.shadow.camera.right = d;
+				cameraLight.shadow.camera.top = d;
+				cameraLight.shadow.camera.bottom = - d;
+				cameraLight.shadow.camera.far = 10000;
+
+				shadowHelper = new THREE.CameraHelper(cameraLight.shadow.camera);
+				shadowHelper.visible = false;
+
+				scene.add( cameraLight, shadowHelper  );
+
+				(function update(){
+					requestAnimationFrame( update );
+					cameraLight.position.copy( camera.position );
+				})();
+
+			})();
+
+
+		//  Renderer.
+			(function(){
+
+				renderer = new THREE.WebGLRenderer({
+					antialias: true,
+					preserveDrawingBuffer: true,
+				});
+
+				renderer.gammaInput = true;
+				renderer.gammaOutput = true;
+				renderer.shadowMap.enabled = true;
+				renderer.setClearColor( 0x000000 );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( (window.innerWidth - w), window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				window.addEventListener("resize", function onWindowResize() {
+					renderer.setSize( (window.innerWidth - w), window.innerHeight );
+				});
+
+				mouse = new THREE.Vector2();
+
+				renderer.domElement.addEventListener("mousemove", function onMouseMove(e) {
+					mouse.x = ( e.clientX - (renderer.domElement.width * 0.5) );
+					mouse.y = ( e.clientY - (renderer.domElement.height * 0.5) );
+				});
+
+
+				(function render(){
+					requestAnimationFrame( render );
+					renderer.render( scene, camera );
+				})();
+
+			})();
+
+
+		//	World - Octree.
+			(function(){
+
+				world = new MW.World();
+
+				var min = new THREE.Vector3( -1500, -1500, -1500 );
+				var max = new THREE.Vector3(  1500,  1500,  1500 );
+				var partition = 5;
+
+				octree = new MW.Octree( min, max, partition );
+				world.add( octree );
+
+				var clock = new THREE.Clock();
+
+				(function update(){
+					requestAnimationFrame( update );
+					var delta = clock.getDelta();
+					world.step( Math.min( delta, 0.02 ) );
+				})();
+
+			})();
+
+		//	ground.js
+			(function(){
+
+				var ground = new THREE.Mesh(
+					new THREE.PlaneGeometry( 3000, 3000, 1, 1 ),
+					new THREE.MeshLambertMaterial({ 
+						opacity:1, 
+						color:0x829ec4,
+					})
+				);
+
+			//	We need only the geometry of the ground
+			//	so there is not need to add to the scene.
+				ground.rotation.x = -Math.PI / 2; // THREE.Math.degToRad( -90 );
+				octree.importThreeMesh( ground ); // important!
+
+			//	Ground Helper.
+				groundHelper = new THREE.GridHelper( 3000, 300, 0x444444, 0x444444 );
+				scene.add( groundHelper );
+
+			})();
+
+
+		//	localPlayer Controller.
+			(function(){
+
+				var playerRadius = 10;
+				localPlayer = new THREE.Object3D();
+				localPlayer.position.set( 0, 10, 0 );
+				localPlayer.name = "localPlayer";
+				scene.add( localPlayer );
+
+			//	Player helper.
+				localPlayerHelper = new THREE.Mesh(
+					new THREE.SphereGeometry( playerRadius, 8, 6 ),
+					new THREE.MeshBasicMaterial( { color: 0xff0000,  wireframe: true} )
+				);
+				localPlayerHelper.name = "playerhelper";
+				localPlayer.add( localPlayerHelper );
+
+			//	Player controller.
+				localPlayerController = new MW.CharacterController( localPlayer, playerRadius );
+				localPlayerController.movementSpeed = 50;
+				world.add( localPlayerController ); // important!
+
+			//	CameraLight target.
+				cameraLight.target = localPlayer;
+
+			//	Update rotation.
+				(function update(){
+					requestAnimationFrame( update );
+					localPlayer.rotation.y = localPlayerController.direction + Math.PI; // important!
+				})();
+
+			})();
+/*
+		//	remotePlayer Controller.
+			(function(){
+
+				var playerRadius = 10;
+				remotePlayer = new THREE.Object3D();
+				remotePlayer.position.set( 0, 10, -100 );
+				remotePlayer.name = "remotePlayer";
+
+				remotePlayerHelper = new THREE.Mesh(
+					new THREE.TetrahedronGeometry(10, 3),
+					new THREE.MeshBasicMaterial( { color: 0xffff00,  wireframe: true} )
+				);
+				remotePlayerHelper.name = "remoteHelper";
+				remotePlayer.add( remotePlayerHelper );
+
+				scene.add( remotePlayer );
+
+				remotePlayerController = new MW.CharacterController( remotePlayer, playerRadius );
+				remotePlayerController.movementSpeed = 40;
+				world.add( remotePlayerController ); // important!
+
+			})();
+*/
+		//	cameraControls, keyInputControls.
+			(function(){
+
+				keyInputControls = new MW.KeyInputControl();
+
+				cameraControls = new MW.TPSCameraControl(
+
+					camera, 			// three.js camera.
+					localPlayer,		// tracking object.
+
+					{
+						el: renderer.domElement,
+						offset: new THREE.Vector3( 0, 0, 0 ), // eye height.
+						radius: 34, // default distance of the character to the camera.
+						minRadius: 1,
+						maxRadius: 280,
+						rigidObjects: []
+					}
+
+				);
+
+			//	bind events.
+				keyInputControls.addEventListener( "movekeyon", function () { 
+					localPlayerController.isRunning = true; 
+				});
+
+				keyInputControls.addEventListener( "movekeyoff", function () { 
+					localPlayerController.isRunning = false; 
+				});
+
+				keyInputControls.addEventListener( "jumpkeypress", function () { 
+					localPlayerController.jump(); 
+				});
+
+			// synch with keybord input and camera control input.
+				keyInputControls.addEventListener( "movekeychange",  function () {
+					var cameraFrontAngle = cameraControls.getFrontAngle();
+					var characterFrontAngle = keyInputControls.frontAngle;
+					localPlayerController.direction = THREE.Math.degToRad( 360 ) - cameraFrontAngle + characterFrontAngle;
+				});
+
+/*
+			//	"updated" event is fired by "cameraControls.update()"
+				cameraControls.addEventListener( "updated", function () {
+				//	it updates character front angle with the camera view.
+				//  We want camera independed from character front angle,
+				//	so we keep it disactivated. Maybe used somewhere later.
+					var cameraFrontAngle = cameraControls.getFrontAngle();
+					var characterFrontAngle = keyInputControls.frontAngle;
+					localPlayerController.direction = THREE.Math.degToRad( 360 ) - cameraFrontAngle + characterFrontAngle;
+				});
+*/
+
+				(function update(){
+					requestAnimationFrame( update );
+					cameraControls.update();
+				})();
+
+			})();
+
+
+		//	joystickControls.
+			(function(){
+
+				var joystick1, joystick2;
+
+				var joysticControls1 = document.createElement( "div" );
+				joysticControls1.id = "joystick-controls-1";
+				joysticControls1.classList.add("joystick-controls");
+				document.body.appendChild( joysticControls1 );
+
+				var joysticControls2 = document.createElement( "div" );
+				joysticControls2.id = "joystick-controls-2";
+				joysticControls2.classList.add("joystick-controls");
+				document.body.appendChild( joysticControls2 );
+
+				var joystick1Selector  = "#joystick1";
+				var joystick2Selector  = "#joystick2";
+				var jumpButtonSelector = "#jumpButton";
+
+				var joystickControlsSelector  = ".joystick-controls";
+				var joystickControls1Selector = "#joystick-controls-1";
+				var joystickControls2Selector = "#joystick-controls-2";
+
+				joystick1  = new virtualInput.Joystick( $( joystickControls1Selector ), 94, { id: "joystick1" } );
+				joystick2  = new virtualInput.Joystick( $( joystickControls2Selector ), 94, { id: "joystick2" } );
+				jumpButton = new virtualInput.Button(   $( joystickControls1Selector ), 58, { id: "jumpButton", label: "<b>JUMP</b>" } ); // buttonSvgSrc
+
+				joystick1.addEventListener( "active", function onActive() { 
+
+					if (  localPlayerController.isJumping 
+						|| !localPlayerController.isGrounded 
+						|| localPlayerController.isOnSlope ) {
+						return;
+					}
+
+					localPlayerController.isRunning = true;
+
+				});
+
+				joystick1.addEventListener( "disactive", function onDisactive() { 
+
+					if (  localPlayerController.isJumping 
+						|| !localPlayerController.isGrounded 
+						||  localPlayerController.isOnSlope ) {
+						return;
+					}
+
+					localPlayerController.isRunning = false;
+
+				});
+
+				jumpButton.addEventListener( "press", function onPress() { 
+
+					if (  localPlayerController.isJumping 
+						|| !localPlayerController.isGrounded 
+						|| localPlayerController.isOnSlope ) {
+						return;
+					}
+
+					localPlayerController.jump();
+
+				});
+
+				joystick1.update = function(){
+
+					if ( this.isActive ) {
+
+						localPlayerController.direction = (3 * Math.PI/2) - cameraControls.getFrontAngle() + this.angle;
+
+					}
+				};
+
+				joystick2.update = function(){
+
+					if ( this.isActive ) {
+
+						cameraControls.setLatLon(
+							cameraControls.lat + this.position.y * 0.5, // deg.
+							cameraControls.lon - this.position.x        // deg.
+						);
+
+					}
+				};
+
+
+				(function update(){
+					requestAnimationFrame( update );
+					joystick1.update();
+					joystick2.update();
+				})();
+				
+			})();
+
+		</script>
+
+		<script>
+
+		//	Avatar loader.
+
+			var url = "/manny/characters/MannyCatwalkIdle01.fbx";
+			var loader = new THREE.FBXLoader();
+			loader.load( url, function( group ){
+
+			//	object is THREE.Group.
+				group.name = "MannyTheSkeleton5.1";
+				var s = 0.00033; group.scale.set(s,s,s); // important!
+				group.position.y = -localPlayerController.radius;
+				debugMode && console.log( group ); 
+
+			//	Replace materials.
+				group.children.forEach( function( child ){
+
+					if ( child.type !== "SkinnedMesh" ) return;
+
+					if ( Array.isArray(child.material) ) {
+						child.material = child.material.map( function( item ){
+							var name = item.name;
+							return new THREE.MeshStandardMaterial({
+								name:name, skinning:true,
+							});
+						});
+
+					} else {
+
+						var name = child.material.name;
+						child.material = new THREE.MeshStandardMaterial({
+							name:name, skinning:true,
+						});
+
+					}
+
+					debugMode && console.log( child.material ); 
+				});
+
+
+			//	Collect skinned meshes.
+				var meshes = group.children.filter( function( item ){
+					return item.type === "SkinnedMesh";
+				});
+			//	TODO: Create mesh droplist to avatar tab.
+			//	TODO: Create material droplist to avatar tab.
+				debugMode && console.log( meshes ); 
+
+
+			//	Add group to scene.
+			//	must be add before animation controller.
+				localPlayer.add( group );
+				localPlayerHelper.visible = false;
+				localPlayerController.direction += Math.PI; // important!
+
+/*
+			//	Update position/rotation.
+				(function update(){
+					requestAnimationFrame( update );
+				//	position.
+					group.position.set(
+						localPlayerController.center.x,
+						localPlayerController.center.y - localPlayerController.radius,
+						localPlayerController.center.z
+					);
+				//	rotation.
+					group.rotation.y = localPlayerController.direction + Math.PI; // important!
+				})();
+
+			//	Animations.
+
+				var droplistUpdated = new Signal();
+
+			//	CleanUp animation names.
+				var animations = group.animations;
+				animations.forEach( function( clip ){
+					clip.name = clip.name.replace("Armature|", "").toLowerCase();
+				});
+				debugMode && console.log( animations ); 
+*/
+
+			//	Animation controller.
+				var animations = group.animations;
+				group.animations[0].name = "idling";
+
+				animationController = new MW.AnimationController( group );
+				debugMode && console.log( "animations:", Object.keys( animationController.motion ).join() );
+				
+				localPlayerController.addEventListener( "startIdling",  function () { 
+					animationController.play( "idling" ); 
+					droplistUpdated.dispatch( "idling" ); 
+				});
+
+/*
+			//	animationController.motion.jumping.setLoop( THREE.LoopOnce, 0 );
+			//	animationController.motion.jumping.clampWhenFinished = true;
+			//	animationController.motion.falldown.setLoop( THREE.LoopOnce, 0 );
+			//	animationController.motion.falldown.clampWhenFinished = true;
+			//	animationController.motion["t-pose"].setLoop( THREE.LoopOnce, 0 );
+			//	animationController.motion["t-pose"].clampWhenFinished = true;
+
+			//	localPlayer controller motions.
+				localPlayerController.addEventListener( "startWalking", function () { 
+					animationController.play( "running" ); 
+					droplistUpdated.dispatch( "running" ); 
+				});
+				localPlayerController.addEventListener( "startSliding", function () { 
+					animationController.play( "sliding" ); 
+					droplistUpdated.dispatch( "sliding" ); 
+				});
+				localPlayerController.addEventListener( "startFalling", function () { 
+					animationController.play( "sliding" ); 
+					droplistUpdated.dispatch( "sliding" ); 
+				});
+
+			//	Jumping.
+				localPlayerController.addEventListener( "startJumping", function () { 
+					if ( localPlayerController.isRunning ) {
+						animationController.play("jumping");
+						animationController.motion.jumping.reset();
+						droplistUpdated.dispatch( "jumping" );
+					} else {
+						animationController.play( "sliding" );
+						droplistUpdated.dispatch( "sliding" );
+					}
+				});
+
+			//	Additonal.
+				localPlayerController.addEventListener( "startTexting", function () { 
+					animationController.play( "texting" ); 
+					animationController.motion.texting.reset();
+					droplistUpdated.dispatch( "texting" ); 
+				});
+
+				localPlayerController.addEventListener( "startPhoning", function () { 
+					animationController.play( "phoning" ); 
+					animationController.motion.phoning.reset();
+					droplistUpdated.dispatch( "phoning" ); 
+				});
+
+				localPlayerController.addEventListener( "fallDown", function () { 
+					animationController.play( "falldown" ); 
+					animationController.motion.falldown.reset();
+					droplistUpdated.dispatch( "falldown" ); 
+				});
+*/
+
+			//	Animation droplist.
+				(function(){
+
+					var select = document.getElementById("animation-droplist");
+					Object.keys( animationController.motion ).forEach( function( name ){
+						select.appendChild( createOption( name ) );
+					});
+
+					function createOption(name, i){
+						var option = document.createElement("option");
+						option.text = option.value = name;
+						return option;
+					}
+					
+					select.addEventListener("change", function(){
+						var name = select.value;
+						animationController.play( name );
+						if ( animationController.motion[name].clampWhenFinished ) {
+							animationController.motion[ name ].reset();
+						}
+					});
+					
+					droplistUpdated.add( function( name ){ select.value = name; });
+
+				})();
+
+				var clock = new THREE.Clock();
+
+				(function update(){
+					requestAnimationFrame( update );
+					var delta = clock.getDelta();
+					animationController.update( delta );
+				})();
+
+				debugMode && console.log( animationController ); 
+				localPlayerController.dispatchEvent( {type:"startIdling"} );
+
+			}, 
+
+			function onProgress( e ){
+				var size = "(" + Math.floor( e.total / 1000 ).format() + " KB)";
+				var progress = Math.floor( ( e.loaded / e.total ) * 100 ) + "%";
+				console.log( "Loaded", progress, "of", size,  );
+			},
+
+			function onError( err ){
+				console.error(err);
+			});
+
+		</script>
+
+		<script>
+
+			(function(){
+
+				var height = 12;
+				var radius = 20;
+				var segments = 32;
+
+				var material = new THREE.MeshLambertMaterial();
+				var geometry = new THREE.CylinderGeometry(radius, radius, height, segments, 1);
+				var mesh = new THREE.Mesh( geometry, material );
+				mesh.position.y = ( height * 0.5 ) - 1;
+
+			//	Create Blocks Button.
+
+				var interval;
+				var tab = TabUI.Debug.tab;
+				var row = document.createElement("div");
+				row.style.cssText = "margin:10px 15px;height:35px;text-align:center;";
+
+				var button = document.createElement("div");
+				button.id = "create-blocks";
+				button.textContent = "Create blocks";
+				button.style.cssText = "min-width:60%;width:fit-content;height:40px;font-size:large;text-overflow:ellipsis;";
+				button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+				button.addEventListener( "click", function(){
+					clearTimeout( interval );
+					interval = setTimeout( function(){
+						for ( var i = 100; i > 0; i-- ){
+							var block = mesh.clone();
+							block.position.set(
+								Math.floor( Math.cos( Math.random() * 2*Math.PI ) * 1000 ),
+								mesh.position.y,
+								Math.floor( Math.cos( Math.random() * 2*Math.PI ) * 1000 ),
+							);
+								scene.add( block );
+							octree.importThreeMesh( block );
+						}
+					}, 250);
+				});
+
+				row.appendChild( button );
+				tab.appendChild( row );
+
+			})();
+
+
+/*
+			(function(){
+
+				var material = new THREE.MeshLambertMaterial();
+				var geometry = new THREE.CylinderGeometry(5, 20, 12, 8);
+				var cylider = new THREE.Mesh( geometry, material );
+
+				function addBase( x, z ){
+					var base = cylider.clone();
+					base.position.set(x, 6, z);
+					scene.add( base ); // optional.
+					octree.importThreeMesh( base );
+				}
+				
+			//	addBase( 12, 32 );
+			//	addBase( 34, 45 );
+			//	addBase( 22, -45 );
+			//	addBase( 212, -54 );
+			//	addBase( 105, 80 );
+			//	addBase( 58, 47 );
+
+			//	var geometry = new THREE.BoxGeometry(30,10,30, 1,1,1);
+			//	var box = new THREE.Mesh( geometry, material );
+			//	box.position.set(120, 5, 145);
+			//	scene.add( box ); // optional.
+			//	octree.importThreeMesh( box );
+
+			})();
+*/
+		</script>
+
+	</body>
+</html>

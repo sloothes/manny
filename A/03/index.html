@@ -244,17 +244,17 @@
 
 			(function(){
 
-			//	Import Player.
+			//	Import Remote Player.
 
 				var tab = TabUI.Debug.tab;
 				var row = document.createElement("div");
 				row.style.cssText = "margin:10px 15px;height:35px;text-align:center;";
 				tab.appendChild( row );
 
-				var playerButton = importPlayerButton();
+				var playerButton = importPlayersButton();
 				row.appendChild( playerButton );
 
-				function importPlayerButton() {
+				function importPlayersButton() {
 
 					var button = document.createElement("div");
 					button.id = "import-player";
@@ -301,16 +301,17 @@
 									player.name = "player_"+k;
 
 								//	Random position.
-									var position = Math.random();
+									var r = 100;
+									var p = Math.random();
 									player.position.set(
-										localPlayer.position.x + Math.floor( Math.sin( position * 2*Math.PI ) * 100 ), // random x,
-										radius,	// y: player radius,
-										localPlayer.position.z + Math.floor( Math.cos( position * 2*Math.PI ) * 100 ), // random z,
+										localPlayer.position.x + Math.floor( Math.sin( p * 2*Math.PI ) * r ), // random x,
+										radius,	// player radius (y),
+										localPlayer.position.z + Math.floor( Math.cos( p * 2*Math.PI ) * r ), // random z,
 									);
 
 								//	Player helper.
 									var playerHelper = new THREE.Mesh(
-										new THREE.TetrahedronGeometry(10, 0),
+										new THREE.TetrahedronGeometry(10, 1),
 										new THREE.MeshBasicMaterial({ 
 											color: 0xffff00,  
 											wireframe: true,
@@ -327,6 +328,13 @@
 									playerController.direction = Math.random() * 2*Math.PI; // important!
 									player.rotation.y = playerController.direction + Math.PI; // important!
 									world.add( playerController ); // important!
+
+								//	Player controller random direction.
+									setTimeout( randomDirection, Math.floor( Math.random() * 10000 ) );
+									function randomDirection(){
+										playerController.direction = Math.random() * 2 * Math.PI;
+										setTimeout( randomDirection, Math.floor( Math.random() * 10000 ) );
+									}
 
 								//	Update remote player rotation.
 									(function update(){
@@ -537,7 +545,7 @@
 
 				var min = new THREE.Vector3( -1500, -1500, -1500 );
 				var max = new THREE.Vector3(  1500,  1500,  1500 );
-				var partition = 5;
+				var partition = 4;
 
 				octree = new MW.Octree( min, max, partition );
 				world.add( octree );

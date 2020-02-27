@@ -323,18 +323,112 @@
 									scene.add( player );
 
 								//	Remote player controller.
+									cameraControls.trackObject = player; // debug!
 									var playerController = new MW.CharacterController( player, radius );
 									playerController.movementSpeed = 40;
-									playerController.direction = Math.random() * 2*Math.PI; // important!
-									player.rotation.y = playerController.direction + Math.PI; // important!
 									world.add( playerController ); // important!
 
 								//	Player controller random direction.
-									setTimeout( randomDirection, Math.floor( Math.random() * 10000 ) );
+									var requestAnimationFrameID;
+									playerController.direction = randomDirection();
+									player.rotation.y = playerController.direction + Math.PI; // important!
+
 									function randomDirection(){
-										playerController.direction = Math.random() * 2 * Math.PI;
-										setTimeout( randomDirection, Math.floor( Math.random() * 10000 ) );
+										return Math.PI * Math.sin( 2 * Math.PI * Math.random() ); // -3.14 < number > 3.14!
 									}
+
+									(function crazyIvan(){
+									//	from "The Hunt For Red October" movie.
+
+										var max = Math.PI;
+										var limit = THREE.Math.degToRad( 1 );
+										var direction = ( playerController.direction + randomDirection() ) % max;
+										var deltaAngle = ( direction - playerController.direction );
+									//	debugMode && console.log( "crazyIvan to:", direction ); // debug!
+
+										cancelAnimationFrame( requestAnimationFrameID ); // important!
+
+										if ( deltaAngle == 0 || isNaN( deltaAngle ) || isNaN( direction ) ) {
+											cancelAnimationFrame( requestAnimationFrameID );
+											debugMode && console.log( "something isNaN:", deltaAngle );
+											setTimeout( crazyIvan, Math.floor( Math.random() * 10000 ) );
+											return;
+										}
+
+										var clock = new THREE.Clock(); // important!
+
+										(function turn(){
+
+											requestAnimationFrameID = requestAnimationFrame( turn );
+
+											var dt = clock.getDelta();
+
+											if ( direction > 0 && playerController.direction > 0
+											 && playerController.direction < direction + limit
+											 && playerController.direction > direction - limit 
+											) {
+												playerController.direction = direction % max;
+												cancelAnimationFrame( requestAnimationFrameID );
+												setTimeout( crazyIvan, Math.floor( Math.random() * 10000 ) );
+											//	debugMode && console.log( playerController.direction ); // debug!
+												return;
+											}
+
+											if ( direction < 0 && playerController.direction < 0
+											 && playerController.direction > direction - limit
+											 && playerController.direction < direction + limit 
+											) {
+												playerController.direction = direction % max;
+												cancelAnimationFrame( requestAnimationFrameID );
+												setTimeout( crazyIvan, Math.floor( Math.random() * 10000 ) );
+											//	debugMode && console.log( playerController.direction ); // debug!
+												return;
+											}
+											
+											if ( playerController.direction > 2*max ) {
+											//
+												debugMode && console.log( "crazyIvan direction:", direction ); // debug!
+												debugMode && console.log( "crazyIvan +overflow:", playerController.direction ); // debug!
+												debugMode && console.log("");
+											//
+												playerController.direction = 0;
+												cancelAnimationFrame( requestAnimationFrameID );
+												setTimeout( crazyIvan, Math.floor( Math.random() * 10000 ) );
+												return;
+											}
+
+											if ( playerController.direction < -2*max ) {
+											//
+												debugMode && console.log( "crazyIvan direction:", direction ); // debug!
+												debugMode && console.log( "crazyIvan -overflow:", playerController.direction ); // debug!
+												debugMode && console.log("");
+											//
+												playerController.direction = 0;
+												cancelAnimationFrame( requestAnimationFrameID );
+												setTimeout( crazyIvan, Math.floor( Math.random() * 10000 ) );
+												return;
+											}
+
+											if ( deltaAngle > 0 ) playerController.direction += Math.min( limit, dt );
+											if ( deltaAngle < 0 ) playerController.direction -= Math.min( limit, dt );
+
+										//	debugMode && console.log( playerController.direction ); // debug!
+
+										})();
+
+									//	setTimeout( crazyIvan, Math.floor( Math.random() * 10000 ) );
+
+										function mod( a, n ) { 
+											return ( a % n + n ) % n;  // important!
+										} 
+
+										function getDeltaAngle( current, target ) {
+											var a = mod( ( current - target ), 2 * Math.PI );
+											var b = mod( ( target - current ), 2 * Math.PI );
+											return a < b ? -a : b;
+										}
+
+									})();
 
 								//	Update remote player rotation.
 									(function update(){
@@ -640,6 +734,7 @@
 			})();
 */
 		//	cameraControls, keyInputControls.
+
 			(function(){
 
 				keyInputControls = new MW.KeyInputControl();
@@ -692,6 +787,13 @@
 				});
 */
 
+			//	turn to.
+				localPlayerController.turnTo    = turnto.bind( localPlayerController );
+				localPlayerController.turnBack  = turnto.bind( localPlayerController,  0 );
+				localPlayerController.turnFront = turnto.bind( localPlayerController,  Math.PI );
+				localPlayerController.turnLeft  = turnto.bind( localPlayerController, -Math.PI/2 );
+				localPlayerController.turnRight = turnto.bind( localPlayerController,  Math.PI/2 );
+
 				(function update(){
 					requestAnimationFrame( update );
 					cameraControls.update();
@@ -699,6 +801,51 @@
 
 			})();
 
+		//	turnTo.js
+
+			function turnto( rad, immediate ){
+
+				var limit = THREE.Math.degToRad(1);
+				var frontAngle = Math.PI - cameraControls.getFrontAngle();
+				var deltaAngle = getDeltaAngle( this.direction, frontAngle + rad );
+
+				var turn = () => {
+
+					windowAnimationFrameRequestID = requestAnimationFrame( turn );
+
+					if ( isNaN( deltaAngle ) ) {
+						cancelAnimationFrame( windowAnimationFrameRequestID );
+						return;
+					}
+
+					if ( immediate ) {
+						this.direction += deltaAngle;
+						cancelAnimationFrame( windowAnimationFrameRequestID );
+						return;
+					}
+
+					if ( Math.abs( deltaAngle ) < limit ) {
+						this.direction += deltaAngle;
+						cancelAnimationFrame( windowAnimationFrameRequestID );
+						return;
+					}
+
+					this.direction = mod( this.direction += ( deltaAngle *= 0.5 ), 2 * Math.PI );
+				}
+
+				return turn();
+
+				function mod( a, n ) { 
+					return ( a % n + n ) % n;  // important!
+				} 
+
+				function getDeltaAngle( current, target ) {
+					var a = mod( ( current - target ), 2 * Math.PI );
+					var b = mod( ( target - current ), 2 * Math.PI );
+					return a < b ? -a : b;
+				}
+
+			}
 
 		//	joystickControls.
 			(function(){

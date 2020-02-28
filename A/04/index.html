@@ -786,14 +786,6 @@
 					localPlayerController.direction = THREE.Math.degToRad( 360 ) - cameraFrontAngle + characterFrontAngle;
 				});
 */
-
-			//	turn to.
-				localPlayerController.turnTo    = turnto.bind( localPlayerController );
-				localPlayerController.turnBack  = turnto.bind( localPlayerController,  0 );
-				localPlayerController.turnFront = turnto.bind( localPlayerController,  Math.PI );
-				localPlayerController.turnLeft  = turnto.bind( localPlayerController, -Math.PI/2 );
-				localPlayerController.turnRight = turnto.bind( localPlayerController,  Math.PI/2 );
-
 				(function update(){
 					requestAnimationFrame( update );
 					cameraControls.update();
@@ -803,6 +795,12 @@
 
 		//	turnTo.js
 
+			localPlayerController.turnTo    = turnto.bind( localPlayerController );
+			localPlayerController.turnBack  = turnto.bind( localPlayerController,  0 );
+			localPlayerController.turnFront = turnto.bind( localPlayerController,  Math.PI );
+			localPlayerController.turnLeft  = turnto.bind( localPlayerController, -Math.PI/2 );
+			localPlayerController.turnRight = turnto.bind( localPlayerController,  Math.PI/2 );
+
 			function turnto( rad, immediate ){
 
 				var requestAnimationFrameID;
@@ -810,7 +808,7 @@
 				var frontAngle = Math.PI - cameraControls.getFrontAngle();
 				var deltaAngle = getDeltaAngle( this.direction, frontAngle + rad );
 
-				return ( function turn(){
+				var turn = () => {
 
 					requestAnimationFrameID = requestAnimationFrame( turn );
 
@@ -833,9 +831,9 @@
 
 					this.direction = mod( this.direction += ( deltaAngle *= 0.5 ), 2 * Math.PI );
 
-				})();
+				};
 
-			//	return turn();
+				return turn();
 
 				function mod( a, n ) { 
 					return ( a % n + n ) % n;  // important!

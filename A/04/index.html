@@ -87,7 +87,9 @@
 
 		<script>
 			
-			debugMode = true; // important!
+			var debugMode = true; // important!
+			var ground, groundHelper;
+			MW.install( THREE ); // important!
 
 			Number.prototype.format = function (){
 				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
@@ -104,14 +106,15 @@
 				var sidePanel = createSidePanel();
 				var loginTab = TabUI.add( "Login", "login-tab" );
 				var debugTab = TabUI.add( "Debug", "debug-tab" );
+				var levelTab = TabUI.add( "Levels", "level-tab" );
 				var avatarTab = TabUI.add( "Avatar", "avatar-tab" );
-				var controlTab = TabUI.add( "Control", "control-tab" );
-				var animationTab = TabUI.add( "Animation", "animation-tab" );
+				var controlTab = TabUI.add( "Controls", "control-tab" );
+				var animationTab = TabUI.add( "Animations", "animation-tab" );
 
 				document.body.appendChild( sidePanel );
-				TabUI.append("Control", "Avatar", "Animation", "Login", "Debug" );
-				TabUI.Debug.role.classList.add("active");
-				TabUI.Debug.tab.classList.add("in","active");
+				TabUI.append("Controls", "Avatar", "Animations", "Levels", "Login", "Debug" );
+				TabUI.Levels.role.classList.add("active");
+				TabUI.Levels.tab.classList.add("in","active");
 
 			})();
 
@@ -232,11 +235,211 @@
 
 		<script>
 
+		//	Levels tab.
+
+			(function(){
+
+				var terrain, interval;
+				var tab = TabUI.Levels.tab;
+
+				var container = document.createElement("div");
+				container.id = "terrain-buttons";
+				container.style.width = "300px";
+
+				var terrains = [
+					"C1W","C2W","C3","C4","C5W","C7W","C8","C9W","C10W",
+					"C12W","C13","C14W","C15","C16W","C17W","C18W","C19W",
+					"C20W","C21","C22W","C23W","C24W","C25W","C26W","C27W",
+					"C28W","C29W","D1","D2","D3","D4","D5","D6","D7","D9",
+					"D11","D12","D13","D14","D15","D16","D17","D18","D19",
+					"D20","D21","D22","D24","D25",
+				];
+
+				while ( terrains.length ) {
+					(function( id ){
+
+						var button = document.createElement("div");
+						button.id = id;
+						button.classList.add("btn", "btn-white-outline", "btn-terrain");
+						button.style.cssText = "background-size:contain;background-image:url(/manny/terrain/"+id+".png);";
+						button.addEventListener( "click", function(){
+
+							clearTimeout( interval );
+
+							interval = setTimeout( function(){
+
+								var loader = new THREE.ImageLoader();
+								var url = "/manny/terrain/"+button.id+".png";
+							//	loader.setCrossOrigin("anonymous");	// important!
+								loader.load( url, function( img ){
+
+									if ( !img ) return;
+
+								//  Remove old terrain.
+									if (terrain) {
+										scene.remove(terrain);
+										terrain.geometry.dispose();
+										terrain.material.dispose();
+										octree.removeThreeMesh(terrain.geometry.uuid);
+										var index = cameraControls.rigidObjects.findIndex( function( item ){
+											return item === terrain;
+										});
+										if ( index > -1 ) cameraControls.rigidObjects.splice( index, 1 );
+									}
+
+									setTimeout( function(){
+
+									//	Matrix.
+										var minHeight = 5; var maxHeight = 10;
+										var matrix = img2matrix( img, img.width, img.height, minHeight, maxHeight );
+									//  Geometry.
+										var geometry = matrix2geometry( matrix,  img.width-1 , img.height-1 );
+										geometry.rotateX(-Math.PI/2); 
+										geometry.computeBoundingBox();
+										geometry.center();
+									//	Material.
+										var material = new THREE.MeshLambertMaterial({side:2});
+									//  Terrain.
+										terrain = new THREE.Mesh(geometry, material);
+										terrain.position.set(0, 0, 0);
+										var s = 20; terrain.scale.set(s, s, s);
+										terrain.geometry.applyMatrix( terrain.matrix );
+										console.log("terrain:", terrain);
+									//	Add.
+										scene.add( terrain );
+										octree.importThreeMesh( terrain );
+										cameraControls.rigidObjects = [terrain];
+									//	localPlayer.
+										localPlayerController.center.set(0, 50, 0);
+										localPlayerController.isIdling = false; // important!
+
+									});
+
+								});
+
+							}, 500);
+
+
+							function img2matrix( image, width, depth, minHeight, maxHeight ) {
+
+								width = width|0;
+								depth = depth|0;
+
+								var i, j;
+								var matrix = [];
+								var canvas = document.createElement( 'canvas' ),
+									ctx = canvas.getContext( '2d' );
+								var imgData, pixel, channels = 4;
+								var heightRange = maxHeight - minHeight;
+								var heightData;
+
+								canvas.width  = width;
+								canvas.height = depth;
+
+								ctx.drawImage( image, 0, 0, width, depth );
+								imgData = ctx.getImageData( 0, 0, width, depth ).data;
+
+								for ( i = 0|0; i < depth; i = ( i + 1 )|0 ) { //row
+
+									matrix.push( [] );
+
+									for ( j = 0|0; j < width; j = ( j + 1 )|0 ) { //col
+
+										pixel = i * depth + j;
+										heightData = imgData[ pixel * channels ] / 255 * heightRange + minHeight;
+
+										matrix[ i ].push( heightData );
+
+									}
+
+								}
+
+								return matrix;
+							}
+
+							function matrix2geometry ( matrix, width, depth ) {
+
+								var sizeX = matrix[ 0 ].length;
+								var sizeZ = matrix.length;
+
+								var halfWidth = width * 0.5;
+								var halfDepth = depth * 0.5;
+								var geometry = new THREE.PlaneGeometry( width, depth, sizeX - 1, sizeZ - 1 );
+
+								var z90deg = new THREE.Matrix4().makeRotationZ( -Math.PI/2 );
+								geometry.applyMatrix( z90deg );
+
+								geometry.vertices.forEach( function ( vertex, i ) {
+
+									var row = ( i / sizeX )|0;
+									var col = i % sizeX;
+
+									vertex.x = halfWidth + vertex.x;
+									vertex.y = halfDepth + vertex.y;
+									vertex.z = matrix[ row ][ col ];
+
+								});
+
+								geometry.computeFaceNormals();
+								geometry.computeVertexNormals();
+
+								return geometry;
+							}
+
+
+
+
+
+
+
+						});
+
+						container.appendChild( button );
+
+					})( terrains.shift() );
+				}
+
+			//	Remove terrain button.
+
+				function RemoveButton(){
+
+					var button = document.createElement("div");
+					button.classList.add("btn", "btn-white-outline", "btn-terrain");
+					button.style.cssText = "background-size:contain;background:none;";
+					button.addEventListener( "click", function(){
+						if (terrain) {
+						//	scene.
+							scene.remove(terrain);
+						//	octree.
+							octree.removeThreeMesh(terrain.geometry.uuid);
+						//	camera.
+							var index = cameraControls.rigidObjects.findIndex( function( item ){
+								return item === terrain;
+							});
+							if ( index > -1 ) cameraControls.rigidObjects.splice( index, 1 );
+						//	dispose.
+							terrain.geometry.dispose();
+							terrain.material.dispose();
+						}
+					});
+
+					return button;
+				}
+
+				container.appendChild( RemoveButton() );
+				tab.appendChild( container );
+
+			})();
+
+		</script>
+
+		<script>
+
 		//	Animation tab.
 
 			(function(){
 
-				var tab = TabUI.Animation.tab;
+				var tab = TabUI.Animations.tab;
 				var row = document.createElement("h3");
 				row.textContent = "Animation";
 
@@ -258,7 +461,7 @@
 
 			//	Import Animation.
 
-				var tab = TabUI.Animation.tab;
+				var tab = TabUI.Animations.tab;
 				var row = document.createElement("div");
 				row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
 
@@ -649,8 +852,7 @@
 
 		<script>
 
-			const w = 370;
-			MW.install( THREE ); // important!
+			const w = 370; // important!
 		//	dispatcher = new THREE.EventDispatcher(); // dispatcher.
 
 		//	Scene.
@@ -770,7 +972,7 @@
 		//	ground.js
 			(function(){
 
-				var ground = new THREE.Mesh(
+				ground = new THREE.Mesh(
 					new THREE.PlaneGeometry( 3000, 3000, 1, 1 ),
 					new THREE.MeshLambertMaterial({ 
 						opacity:1, 
@@ -782,6 +984,7 @@
 			//	so there is not need to add to the scene.
 				ground.rotation.x = -Math.PI / 2; // THREE.Math.degToRad( -90 );
 				octree.importThreeMesh( ground ); // important!
+				scene.add( ground ); // optional!
 
 			//	Ground Helper.
 				groundHelper = new THREE.GridHelper( 3000, 300, 0x444444, 0x444444 );
@@ -863,7 +1066,7 @@
 						radius: 34, // default distance of the character to the camera.
 						minRadius: 1,
 						maxRadius: 280,
-						rigidObjects: []
+						rigidObjects: [ ground ],
 					}
 
 				);
@@ -1411,7 +1614,7 @@
 								mesh.position.y,
 								Math.floor( Math.cos( Math.random() * 2*Math.PI ) * 1000 ),
 							);
-								scene.add( block );
+							scene.add( block );
 							octree.importThreeMesh( block );
 						}
 					}, 250);

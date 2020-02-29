@@ -92,7 +92,7 @@
 			
 			var debugMode = true; // important!
 			MW.install( THREE ); // important!
-			CameraControls.install( {THREE:THREE} );
+		//	CameraControls.install( {THREE:THREE} ); // demo!
 
 			Number.prototype.format = function (){
 				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
@@ -1132,9 +1132,9 @@
 			})();
 */
 
-		//	keyInputControls.
-
 			(function(){
+
+			//	Camera controls.
 
 				cameraControls = new MW.TPSCameraControl(
 					camera, 			// three.js camera.
@@ -1148,6 +1148,8 @@
 						rigidObjects: [],
 					}
 				);
+
+			//	keyInputControls.
 
 				keyInputControls = new MW.KeyInputControl();
 
@@ -1595,11 +1597,11 @@
 						console.log( group.animations );
 
 					//	Add animation.
-						group.animations[0].name = "jumprun";
+						group.animations[0].name = "running_jump";
 						var clip = group.animations[0];
 						var mixer = animationController.mixer;
 						var object = animationController.object;
-						animationController.motion.jumprun = mixer.clipAction( clip, object );
+						animationController.motion.running_jump = mixer.clipAction( clip, object );
 
 					//	Add option.
 						var select = document.getElementById("animation-droplist");
@@ -1626,16 +1628,18 @@
 						select && select.appendChild( createOption( clip.name ) );
 
 					//	Bind events.
+/*
 						localPlayerController.addEventListener( "startJumping",  function () { 
 							if ( localPlayerController.isRunning ) {
-								animationController.play( "jumprun" );
-								animationController.motion.jumprun.reset(); // important!
-								droplistUpdated.dispatch( "jumprun" ); 
+								animationController.play( "running_jump" );
+								animationController.motion.running_jump.reset(); // important!
+								droplistUpdated.dispatch( "running_jump" ); 
 							} else {
 								animationController.play( "wobbling" ); 
 								droplistUpdated.dispatch( "wobbling" ); 
 							}
 						});
+*/
 						localPlayerController.addEventListener( "startSliding", function () { 
 							animationController.play( "wobbling" ); 
 							droplistUpdated.dispatch( "wobbling" ); 
@@ -1647,6 +1651,44 @@
 
 					});
 				});
+
+				mannyLoaded.add(function(){
+					var loader = new THREE.FBXLoader();
+					var url = "/manny/animations/Jumping.fbx";
+					loader.load( url, function( group ){
+						console.log( group.animations );
+
+					//	Add animation.
+						group.animations[0].name = "jumping";
+						var clip = group.animations[0];
+						var mixer = animationController.mixer;
+						var object = animationController.object;
+						animationController.motion.jumping = mixer.clipAction( clip, object );
+						animationController.motion.jumping.setLoop( THREE.LoopOnce, 0 );
+						animationController.motion.jumping.clampWhenFinished = true;
+
+					//	Add option.
+						var select = document.getElementById("animation-droplist");
+						select && select.appendChild( createOption( clip.name ) );
+
+					//	Bind events.
+						localPlayerController.addEventListener( "startJumping",  function () { 
+							if ( localPlayerController.isRunning ) {
+								animationController.play( "running_jump" );
+								animationController.motion.running_jump.reset(); // important!
+								droplistUpdated.dispatch( "running_jump" ); 
+							} else {
+								animationController.play( "jumping" ); 
+								droplistUpdated.dispatch( "jumping" ); 
+							}
+						});
+
+
+
+					});
+
+				});
+
 
 				function createOption(name){
 					var option = document.createElement("option");

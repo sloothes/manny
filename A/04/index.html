@@ -436,6 +436,8 @@
 						cameraRigidObjectsRemove( terrain );
 						octree.removeThreeMesh(terrain.geometry.uuid);
 					}
+
+					localPlayerController.isIdling = false; // important!
 				}
 
 				function cameraRigidObjectsRemove( mesh ){

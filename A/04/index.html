@@ -84,6 +84,7 @@
 		<script src="/manny/js/FBXLoader.js"></script>
 		<script src="/manny/js/VirtualInput.js"></script>
 		<script src="/manny/js/EditorControls.js"></script>
+		<script src="/manny/js/SubdivisionModifier.js"></script>
 
 		<script>
 			
@@ -292,23 +293,35 @@
 									//	Matrix.
 										var minHeight = 5; var maxHeight = 10;
 										var matrix = img2matrix( img, img.width, img.height, minHeight, maxHeight );
+
 									//  Geometry.
 										var geometry = matrix2geometry( matrix,  img.width-1 , img.height-1 );
 										geometry.rotateX(-Math.PI/2); 
 										geometry.computeBoundingBox();
 										geometry.center();
-									//	Material.
-										var material = new THREE.MeshLambertMaterial({side:2});
+
 									//  Terrain.
+										var material = new THREE.MeshBasicMaterial({wireframe:true});
 										terrain = new THREE.Mesh(geometry, material);
 										terrain.position.set(0, 0, 0);
 										var s = 20; terrain.scale.set(s, s, s);
 										terrain.geometry.applyMatrix( terrain.matrix );
 										console.log("terrain:", terrain);
-									//	Add.
-										scene.add( terrain );
+
+									//	Add to world.
+									//	scene.add( terrain ); // optional!
 										octree.importThreeMesh( terrain );
 										cameraControls.rigidObjects = [terrain];
+
+									//	Smooth terrain.
+										var modifier = new THREE.SubdivisionModifier(2);
+										var smoother = modifier.modify( terrain.geometry );
+										var material = new THREE.MeshLambertMaterial({side:2});
+										var mesh = new THREE.Mesh( smoother, material );
+										mesh.position.copy( terrain.position );
+									//	mesh.scale.copy( terrain.scale );
+										scene.add( mesh ); 
+
 									//	localPlayer.
 										localPlayerController.center.set(0, 50, 0);
 										localPlayerController.isIdling = false; // important!
@@ -385,12 +398,6 @@
 
 								return geometry;
 							}
-
-
-
-
-
-
 
 						});
 
@@ -984,7 +991,7 @@
 			//	so there is not need to add to the scene.
 				ground.rotation.x = -Math.PI / 2; // THREE.Math.degToRad( -90 );
 				octree.importThreeMesh( ground ); // important!
-				scene.add( ground ); // optional!
+			//	scene.add( ground ); // optional!
 
 			//	Ground Helper.
 				groundHelper = new THREE.GridHelper( 3000, 300, 0x444444, 0x444444 );
@@ -1585,10 +1592,13 @@
 
 				var height = 12;
 				var radius = 20;
-				var segments = 32;
+				var segments = 8;
 
 				var material = new THREE.MeshLambertMaterial();
-				var geometry = new THREE.CylinderGeometry(radius, radius, height, segments, 1);
+				var geometry = new THREE.CylinderGeometry(radius/3, radius, height, segments, 1);
+				geometry.computeFaceNormals(); // geometry.computeVertexNormals();
+			//	geometry.computeBoundingSphere(); geometry.computeBoundingBox();
+
 				var mesh = new THREE.Mesh( geometry, material );
 				mesh.position.y = ( height * 0.5 ) - 1;
 
@@ -1601,7 +1611,7 @@
 
 				var button = document.createElement("div");
 				button.id = "create-blocks";
-				button.textContent = "Create blocks";
+				button.textContent = "Create bases";
 				button.style.cssText = "min-width:60%;width:fit-content;height:40px;font-size:large;text-overflow:ellipsis;";
 				button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
 				button.addEventListener( "click", function(){

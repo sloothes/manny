@@ -240,11 +240,21 @@
 			(function(){
 
 				var interval;
-				var terrain, mesh;
+				var terrain, mesh, texture;
+
 				var material = new THREE.MeshBasicMaterial({
-					visible:false,
-					wireframe:true, 
+					visible:false, wireframe:true, 
 				});
+
+				(function(){
+					var url = "https://i.imgur.com/aHeUCko.png";
+					var loader = new THREE.ImageLoader();
+					loader.setCrossOrigin("anonymous"); // important!
+					loader.load( url, function( image ){
+						var mapping = THREE.SphericalReflectionMapping; // important!
+						texture = new THREE.Texture( image, mapping );	// important!
+					});
+				})();
 
 				var tab = TabUI.Levels.tab;
 
@@ -314,15 +324,18 @@
 
 									//	Smoother mesh.
 										setTimeout( function(){
+
 											var modifier = new THREE.SubdivisionModifier(1);
 											var smoother = modifier.modify( terrain.geometry );
-											var material = new THREE.MeshLambertMaterial({
-												side:2, wireframe:false, emissive:0x333333,
+											var material = new THREE.MeshStandardMaterial({
+											//	side:0, wireframe:false, emissive:0x333333,
+												roughness:0, metalness:1, envMap: texture,
 											});
 
 											mesh = new THREE.Mesh( smoother, material );
 											mesh.scale.copy( terrain.scale ); // important!
 											mesh.position.copy( terrain.position ); // important!
+											mesh.material.envMap.needsUpdate = true; // important!
 											scene.add( mesh );
 
 										//	localPlayer.
@@ -1376,6 +1389,20 @@
 				localPlayerHelper.visible = false;
 				localPlayerController.direction += Math.PI; // important!
 
+				(function(){
+					var url = "https://i.imgur.com/rxUXS8C.png";
+					var loader = new THREE.ImageLoader();
+					loader.setCrossOrigin("anonymous");						// important!
+					loader.load( url, function( image ){
+						var material = localPlayer.getObjectByName("MannyTheSkeleton_v51").material;
+						var mapping = THREE.SphericalReflectionMapping;		// important!
+						var texture = new THREE.Texture( image, mapping );	// important!
+						material.roughness = 0; material.metalness = 1;
+						material.envMap = texture;
+						material.envMap.needsUpdate = true;
+						material.needsUpdate = true;
+					});
+				})();
 /*
 			//	Update position/rotation.
 				(function update(){
@@ -1616,17 +1643,31 @@
 
 			(function(){
 
+				var mesh;
 				var height = 12;
 				var radius = 20;
 				var segments = 8;
 
-				var material = new THREE.MeshLambertMaterial();
-				var geometry = new THREE.CylinderGeometry(radius/3, radius, height, segments, 1);
-				geometry.computeFaceNormals(); // geometry.computeVertexNormals();
-			//	geometry.computeBoundingSphere(); geometry.computeBoundingBox();
+				var url = "https://i.imgur.com/rxUXS8C.png";
+				var loader = new THREE.ImageLoader();
+				loader.setCrossOrigin("anonymous"); // important!
+				loader.load( url, function( image ){
 
-				var mesh = new THREE.Mesh( geometry, material );
-				mesh.position.y = ( height * 0.5 ) - 1;
+					var mapping = THREE.SphericalReflectionMapping; // important!
+					var texture = new THREE.Texture( image, mapping );	// important!
+
+					var geometry = new THREE.CylinderGeometry(radius/3, radius, height, segments, 1);
+					geometry.computeFaceNormals(); // geometry.computeVertexNormals();
+				//	geometry.computeBoundingSphere(); geometry.computeBoundingBox();
+					var material = new THREE.MeshStandardMaterial({
+						roughness:0, metalness:1, envMap:texture,
+					});
+
+					mesh = new THREE.Mesh( geometry, material );
+					mesh.position.y = ( height * 0.5 ) - 1;
+					mesh.material.envMap.needsUpdate = true; // important!
+
+				});
 
 			//	Create Blocks Button.
 
@@ -1644,14 +1685,15 @@
 					clearTimeout( interval );
 					interval = setTimeout( function(){
 						for ( var i = 100; i > 0; i-- ){
-							var block = mesh.clone();
-							block.position.set(
+							var base = mesh.clone();
+							base.position.set(
 								Math.floor( Math.cos( Math.random() * 2*Math.PI ) * 1000 ),
 								mesh.position.y,
 								Math.floor( Math.cos( Math.random() * 2*Math.PI ) * 1000 ),
 							);
-							scene.add( block );
-							octree.importThreeMesh( block );
+							scene.add( base );
+							octree.importThreeMesh( base );
+							base.material.envMap.needsUpdate = true; // important!
 						}
 					}, 250);
 				});

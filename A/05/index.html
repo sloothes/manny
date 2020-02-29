@@ -12,13 +12,14 @@
 		<link rel="stylesheet" href="/css/bootstrap.min.css">
 		<link rel="stylesheet" href="/css/bootbox-dialoges.css">
 
+		<script src="/js/watch.js"></script>
 		<script src="/js/jquery.min.js"></script> 
 		<script src="/js/system.min.js"></script>
 		<script src="/js/signals.min.js"></script>
 		<script src="/js/inflate.min.js"></script>
 		<script src="/js/zangodb.min.js"></script>
-		<script src="/js/hold-event.min.js"></script>
 		<script src="/js/bootstrap.min.js"></script>
+		<script src="/js/hold-event.min.js"></script>
 
 		<style>
 
@@ -1076,7 +1077,6 @@
 				})();
 
 			})();
-
 /*
 		//	camera-controls.js (demo)
 			(function(){
@@ -1683,7 +1683,20 @@
 							}
 						});
 
+					//	Watching currentJumpPower (demo).
+						watch( localPlayerController, "currentJumpPower", 
+						function(property, action, currentJumpPower, previousJumpPower){
 
+						//	Jumping Up.
+							if ( currentJumpPower == 1 ) {
+								debugMode && console.log( "JumpingUp:", currentJumpPower, previousJumpPower );
+							}
+
+						//	Jumping Down.
+							if ( currentJumpPower < 0 && previousJumpPower > 0 ) {
+								debugMode && console.log( "JumpingDown:", currentJumpPower, previousJumpPower );
+							}
+						});
 
 					});
 

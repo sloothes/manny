@@ -117,8 +117,8 @@
 
 				document.body.appendChild( sidePanel );
 				TabUI.append("Controls", "Camera", "Avatar", "Animations", "Levels", "Login", "Debug" );
-				TabUI.Camera.role.classList.add("active");
-				TabUI.Camera.tab.classList.add("in","active");
+				TabUI.Levels.role.classList.add("active");
+				TabUI.Levels.tab.classList.add("in","active");
 
 			})();
 
@@ -1151,7 +1151,6 @@
 
 				keyInputControls = new MW.KeyInputControl();
 
-			//	bind events.
 				keyInputControls.addEventListener( "movekeyon", function () { 
 					localPlayerController.isRunning = true; 
 				});

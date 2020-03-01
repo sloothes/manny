@@ -249,10 +249,7 @@
 			(function(){
 
 				var interval;
-				var terrain, mesh, texture;
-
-				THREE.Pathfinding = threePathfinding.Pathfinding;
-				THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
+				var terrain, level, texture;
 
 				var material = new THREE.MeshBasicMaterial({
 					visible:false, wireframe:false, 
@@ -319,10 +316,11 @@
 
 									//  Geometry.
 										var geometry = matrix2geometry( matrix,  img.width-1 , img.height-1 );
-										console.log("geometry:", geometry);
+										geometry.mergeVertices(); // important!
 										geometry.rotateX(-Math.PI/2); 
 										geometry.computeBoundingBox();
 										geometry.center();
+										console.log("geometry:", geometry);
 
 									//  Terrain.
 										terrain = new THREE.Mesh(geometry, material);
@@ -336,59 +334,39 @@
 										octree.importThreeMesh( terrain );
 										cameraControls.rigidObjects.push( terrain );
 
-									//	three-pathfinder.js
+									//	localPlayer.
+										localPlayerController.center.set(0, 50, 0);
+										localPlayerController.isIdling = false; // important!
 
-									//	Convert to GLTF.
+									//	Convert terrain to GLTF.
 										var exporter = new THREE.GLTFExporter();
 										exporter.parse( terrain, function( object ){
 											debugMode && console.log( object );
 											var loader = new THREE.GLTFLoader();
 											loader.parse( JSON.stringify( object, null, 2 ), "", function ( gltf ) {
 												debugMode && console.log( gltf.scene.children[0] );
-												var mesh = gltf.scene.children[0];
-												debugMode && console.log( "isGeometry:", mesh.geometry.isGeometry );
 
-												scene.add( mesh ); // debug!
+												var mesh = gltf.scene.children[0];
 												mesh.material.visible = true;
 												mesh.material.wireframe = true;
+												debugMode && console.log( "isGeometry:", mesh.geometry.isGeometry );
+												
+											//	Level smoother mesh.
 
+												var modifier = new THREE.SubdivisionModifier(1);
+												var smoother = modifier.modify( mesh.geometry );
+												var material = new THREE.MeshStandardMaterial({
+													roughness:0, metalness:1, envMap: texture,
+												});
 
-
-
-
-
-
-
-
-
-
-
+												level = new THREE.Mesh( smoother, material );
+												level.scale.copy( mesh.scale ); // important!
+												level.position.copy( mesh.position ); // important!
+												level.material.envMap.needsUpdate = true; // important!
+												scene.add( level );
 											});
-
 										});
 
-									//	Smoother mesh.
-										setTimeout( function(){
-
-											debugMode && console.time("SubdivisionModifier(1)");
-											var modifier = new THREE.SubdivisionModifier(1);
-											debugMode && console.timeEnd("SubdivisionModifier(1)");
-											var smoother = modifier.modify( terrain.geometry );
-											var material = new THREE.MeshStandardMaterial({
-											//	side:0, wireframe:false, emissive:0x333333,
-												roughness:0, metalness:1, envMap: texture,
-											});
-
-											mesh = new THREE.Mesh( smoother, material );
-											mesh.scale.copy( terrain.scale ); // important!
-											mesh.position.copy( terrain.position ); // important!
-											mesh.material.envMap.needsUpdate = true; // important!
-											scene.add( mesh );
-
-										//	localPlayer.
-											localPlayerController.center.set(0, 50, 0);
-											localPlayerController.isIdling = false; // important!
-										});
 
 									//	EventListener.
 										setTimeout( function(){
@@ -483,10 +461,10 @@
 
 				function removeTerrain(){
 
-					if (mesh){
-						scene.remove(mesh);
-						mesh.geometry.dispose();
-						mesh.material.dispose();
+					if (level){
+						scene.remove(level);
+						level.geometry.dispose();
+						level.material.dispose();
 					}
 
 					if (terrain) {

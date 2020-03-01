@@ -533,7 +533,6 @@
 					button.addEventListener( "click", function(){
 						if ( animationController.currentMotionName == "idling" ) return;
 						animationController.play( "idling" ); 
-						droplistUpdated.dispatch( "idling" ); 
 					});
 
 					return button;
@@ -1543,11 +1542,11 @@
 						console.log( group.animations );
 
 					//	Add animation.
-						group.animations[0].name = "running_jump";
+						group.animations[0].name = "runningJump";
 						var clip = group.animations[0];
 						var mixer = animationController.mixer;
 						var object = animationController.object;
-						animationController.motion.running_jump = mixer.clipAction( clip, object );
+						animationController.motion.runningJump = mixer.clipAction( clip, object );
 
 					//	Add option.
 						var select = document.getElementById("animation-droplist");
@@ -1563,14 +1562,14 @@
 						console.log( group.animations );
 
 					//	Add animation.
-						group.animations[0].name = "jumping_up";
+						group.animations[0].name = "jumpingUp";
 						var clip = group.animations[0];
 						var mixer = animationController.mixer;
 						var object = animationController.object;
-						animationController.motion.jumping_up = mixer.clipAction( clip, object );
-						animationController.motion.jumping_up.setDuration(0.6); // half++ jump duration in sec.
-						animationController.motion.jumping_up.clampWhenFinished = true;
-						animationController.motion.jumping_up.setLoop( THREE.LoopPingPong );
+						animationController.motion.jumpingUp = mixer.clipAction( clip, object );
+						animationController.motion.jumpingUp.setDuration(0.6); // half++ jump duration in sec.
+						animationController.motion.jumpingUp.clampWhenFinished = true;
+						animationController.motion.jumpingUp.setLoop( THREE.LoopPingPong );
 
 					//	Add option.
 						var select = document.getElementById("animation-droplist");
@@ -1579,11 +1578,11 @@
 					//	Bind events.
 						localPlayerController.addEventListener( "startJumping", function() { 
 							if ( !localPlayerController.isRunning ) {
-								animationController.play( "jumping_up" ); 
-								animationController.motion.jumping_up.reset(); // important!
+								animationController.play( "jumpingUp" ); 
+								animationController.motion.jumpingUp.reset(); // important!
 							} else {
-								animationController.play( "running_jump" );
-								animationController.motion.running_jump.reset(); // important!
+								animationController.play( "runningJump" );
+								animationController.motion.runningJump.reset(); // important!
 							}
 						});
 
@@ -1638,14 +1637,14 @@
 					function jumpingUp(){ 
 
 						if ( !localPlayerController.isRunning )  {
-							animationController.play( "jumping_up" );
-							animationController.motion.jumping_up.reset(); // important!
+							animationController.play( "jumpingUp" );
+							animationController.motion.jumpingUp.reset(); // important!
 							return;
 						}
 
 						if ( localPlayerController.isRunning ) {
-							animationController.play( "running_jump" );
-							animationController.motion.running_jump.reset(); // important!
+							animationController.play( "runningJump" );
+							animationController.motion.runningJump.reset(); // important!
 							return;
 						} 
 					}

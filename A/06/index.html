@@ -516,10 +516,28 @@
 				var row = document.createElement("div");
 				row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
 
-				var button = ImportAnimationButton();
+				var button1 = IdleButton();
+				var button2 = ImportAnimationButton();
 
-				row.appendChild( button );
+				row.appendChild( button1 );
+				row.appendChild( button2 );
 				tab.appendChild( row );
+
+				function IdleButton(){
+
+					var button = document.createElement("div");
+					button.id = "idle-animaton";
+					button.textContent = "Pause";
+					button.style.cssText = "max-width:120px;width:100px;float:left;height:40px;font-size:large;";
+					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+					button.addEventListener( "click", function(){
+						if ( animationController.currentMotionName == "idling" ) return;
+						animationController.play( "idling" ); 
+						droplistUpdated.dispatch( "idling" ); 
+					});
+
+					return button;
+				}
 
 				function ImportAnimationButton() {
 
@@ -1398,10 +1416,9 @@
 
 				animationController = new MW.AnimationController( group );
 				debugMode && console.log( "animations:", Object.keys( animationController.motion ).join() );
-				
+
 				localPlayerController.addEventListener( "startIdling",  function () { 
 					animationController.play( "idling" ); 
-					droplistUpdated.dispatch( "idling" ); 
 				});
 
 			//	Animation droplist.
@@ -1419,8 +1436,10 @@
 							animationController.motion[ name ].reset();
 						}
 					});
-					
-					droplistUpdated.add( function( name ){ select.value = name; });
+
+					watch( animationController, "currentMotionName", function(prop, action, value){
+						select.value = value; debugMode && console.log( prop, action, value );
+					});
 
 				})();
 
@@ -1458,7 +1477,6 @@
 						localPlayerController.addEventListener( "startWalking",  function () { 
 							animationController.play( "running" ); 
 							animationController.motion.running.reset(); // important!
-							droplistUpdated.dispatch( "running" ); 
 						});
 
 					});
@@ -1484,7 +1502,6 @@
 					//	Bind events.
 					//	localPlayerController.addEventListener( "startFalling", function () { 
 					//		animationController.play( "falling" ); 
-					//		droplistUpdated.dispatch( "falling" ); 
 					//	});
 
 					});
@@ -1510,12 +1527,10 @@
 					//	Bind events.
 						localPlayerController.addEventListener( "startSliding", function () { 
 							animationController.play( "wobbling" ); 
-							droplistUpdated.dispatch( "wobbling" ); 
 						});
 
 						localPlayerController.addEventListener( "startFalling", function () { 
 							animationController.play( "wobbling" ); 
-							droplistUpdated.dispatch( "wobbling" ); 
 						});
 
 					});
@@ -1566,56 +1581,15 @@
 							if ( !localPlayerController.isRunning ) {
 								animationController.play( "jumping_up" ); 
 								animationController.motion.jumping_up.reset(); // important!
-								droplistUpdated.dispatch( "jumping_up" ); 
 							} else {
 								animationController.play( "running_jump" );
 								animationController.motion.running_jump.reset(); // important!
-								droplistUpdated.dispatch( "running_jump" ); 
 							}
 						});
 
 					});
 				});
-/*
-			//	Watching currentJumpPower (hack).
-				watch( localPlayerController, "currentJumpPower", 
-				function(property, action, currentJumpPower, previousJumpPower){
 
-					if ( !localPlayerController.isJumping ) return;
-
-					if ( currentJumpPower == 1 || ( currentJumpPower < 0 && previousJumpPower > 0 ) ) {
-					//	debugMode && console.log( property, currentJumpPower, previousJumpPower ); // debug!
-					}
-
-					if ( currentJumpPower == 1 ) 
-						jumpingUp();
-					if ( currentJumpPower < 0 && previousJumpPower > 0 ) 
-						jumpingDown();
-
-					function jumpingDown(){
-						if ( localPlayerController.isRunning ) return;
-						animationController.play( "wobbling" ); 
-						droplistUpdated.dispatch( "wobbling" ); 
-					}
-
-					function jumpingUp(){ 
-
-						if ( !localPlayerController.isRunning )  {
-							animationController.play( "jumping_up" );
-							animationController.motion.jumping_up.reset(); // important!
-							droplistUpdated.dispatch( "jumping_up" );
-							return;
-						}
-
-						if ( localPlayerController.isRunning ) {
-							animationController.play( "running_jump" );
-							animationController.motion.running_jump.reset(); // important!
-							droplistUpdated.dispatch( "running_jump" );
-							return;
-						} 
-					}
-				});
-*/
 				function createOption(name){
 					var option = document.createElement("option");
 					option.text = option.value = name;
@@ -1634,7 +1608,49 @@
 			function onError( err ){
 				console.error(err);
 			});
+/*
+			//	WatchJS Demo.
+				var properties = "center,radius,isOnSlope,isIdling,isRunning,isJumping,direction,currentJumpPower";
+				watch( localPlayerController, properties.split(","), function(property, action, current, previous){
+					debugMode && console.log( property, current, previous );
+				});
 
+			//	Watching currentJumpPower (hack).
+				watch( localPlayerController, "currentJumpPower", 
+				function(property, action, currentJumpPower, previousJumpPower){
+
+					if ( !localPlayerController.isJumping ) return;
+
+					if ( currentJumpPower == 1 || ( currentJumpPower < 0 && previousJumpPower > 0 ) ) {
+					//	debugMode && console.log( property, currentJumpPower, previousJumpPower ); // debug!
+					}
+
+					if ( currentJumpPower == 1 ) 
+						jumpingUp();
+					if ( currentJumpPower < 0 && previousJumpPower > 0 ) 
+						jumpingDown();
+
+					function jumpingDown(){
+						if ( localPlayerController.isRunning ) return;
+						animationController.play( "wobbling" ); 
+					}
+
+					function jumpingUp(){ 
+
+						if ( !localPlayerController.isRunning )  {
+							animationController.play( "jumping_up" );
+							animationController.motion.jumping_up.reset(); // important!
+							return;
+						}
+
+						if ( localPlayerController.isRunning ) {
+							animationController.play( "running_jump" );
+							animationController.motion.running_jump.reset(); // important!
+							return;
+						} 
+					}
+				});
+*/
 		</script>
 
 		<script>

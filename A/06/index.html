@@ -88,6 +88,7 @@
 		<script src="/manny/js/EditorControls.js"></script>
 		<script src="/manny/js/camera-controls.js"></script>
 		<script src="/manny/js/SubdivisionModifier.js"></script>
+		<script src="/manny/js/three-pathfinding.umd.js"></script>
 
 		<script>
 			
@@ -247,6 +248,9 @@
 				var interval;
 				var terrain, mesh, texture;
 
+				THREE.Pathfinding = threePathfinding.Pathfinding;
+				THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
+
 				var material = new THREE.MeshBasicMaterial({
 					visible:false, wireframe:true, 
 				});
@@ -327,10 +331,96 @@
 										octree.importThreeMesh( terrain );
 										cameraControls.rigidObjects.push( terrain );
 
+									//	three-pathfinder.js
+
+										(function(){
+
+											var speed = 50;
+											var radius = 10;
+											var name = "level"+id; // ZONE name.
+											var playerPosition = localPlayer.position.clone();
+											var targetPosition = new THREE.Vector3();
+											//	playerPosition.x + Math.floor( Math.sin( p * 2*Math.PI ) * 1000 ), // random x,
+											//	playerPosition.y - radius,	// player radius (y),
+											//	playerPosition.z + Math.floor( Math.cos( p * 2*Math.PI ) * 1000 ), // random z,
+
+											var pathfinder = new THREE.Pathfinding();
+											var helper = new THREE.PathfindingHelper();
+
+											debugMode && console.time("createZone()");
+											var zone = THREE.Pathfinding.createZone( terrain.geometry );
+											debugMode && console.timeEnd("createZone()");
+
+											pathfinder.setZoneData( name, zone );
+										//	Set the player's navigation mesh group.
+											var groupID = pathfinder.getGroup( name, localPlayer.position );
+											debugMode && console.log( "groupID:", groupID );
+										//	Find path from A to B.
+											var path = pathfinder.findPath(playerPosition, targetPosition, name, groupID);
+											debugMode && console.log( "path:", path );
+
+											helper.setPlayerPosition( localPlayer.position.clone() )
+											helper.setTargetPosition( localPlayer.position.clone() );
+
+											renderer.domElement.addEventListener( "mouseup", onMouseUp, false );
+
+											function onMouseUp (event) {
+
+												camera.updateMatrixWorld();
+												raycaster.setFromCamera( mouse, camera );
+												var intersects = raycaster.intersectObject( terrain );
+												if ( !intersects.length ) return;
+
+												targetPosition.copy( intersects[0].point );
+												helper.reset().setPlayerPosition( playerPosition );
+												var targetGroupID = pathfinder.getGroup( name, targetPosition, true );
+												var closestTargetNode = pathfinder.getClosestNode( targetPosition, name, targetGroupID, true );
+												helper.setTargetPosition( targetPosition );
+												if (closestTargetNode) helper.setNodePosition( closestTargetNode.centroid );
+
+											//	Calculate a path to the target and store it.
+												path = pathfinder.findPath( playerPosition, targetPosition, name, groupID );
+												if ( path && path.length ) { 
+													helper.setPath( path );
+												} else {
+													var closestPlayerNode = pathfinder.getClosestNode( playerPosition, name, groupID );
+													var clamped = new THREE.Vector3();
+													pathfinder.clampStep( playerPosition, targetPosition.clone(), closestPlayerNode, name, groupID, clamped );
+													helper.setStepPosition( clamped );
+												}
+
+											}
+
+											(function update() {
+
+												requestAnimationFrame( update );
+												var dt = clock.getDelta();
+
+												if ( !terrain || !(path||[]).length ) return;
+
+												var targetPosition = path[ 0 ];
+												var velocity = targetPosition.clone().sub( playerPosition );
+
+												if (velocity.lengthSq() > 0.05 * 0.05) {
+													velocity.normalize();
+												//	Move player to target.
+													playerPosition.add( velocity.multiplyScalar( dt * speed ) );
+													helper.setPlayerPosition( playerPosition );
+												} else {
+												//	Remove node from the path we calculated.
+													path.shift();
+												}
+
+											})();
+
+										})();
+
 									//	Smoother mesh.
 										setTimeout( function(){
 
+											debugMode && console.time("SubdivisionModifier(1)");
 											var modifier = new THREE.SubdivisionModifier(1);
+											debugMode && console.timeEnd("SubdivisionModifier(1)");
 											var smoother = modifier.modify( terrain.geometry );
 											var material = new THREE.MeshStandardMaterial({
 											//	side:0, wireframe:false, emissive:0x333333,
@@ -1437,7 +1527,7 @@
 					});
 
 					watch( animationController, "currentMotionName", function(prop, action, value){
-						select.value = value; debugMode && console.log( prop, action, value );
+						select.value = value; // debugMode && console.log( prop, action, value );
 					});
 
 				})();

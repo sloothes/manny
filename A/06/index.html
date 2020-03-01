@@ -255,8 +255,8 @@
 				THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
 
 				var material = new THREE.MeshBasicMaterial({
-					visible:true, wireframe:false, 
-					transparent:true, opacity:0.2,
+					visible:false, wireframe:false, 
+				//	transparent:true, opacity:0.2,
 				});
 
 				(function(){
@@ -331,10 +331,12 @@
 										terrain.geometry.applyMatrix( terrain.matrix );
 										console.log("terrain:", terrain);
 
-									//	Add to world.
+									//	Add to world (meshwalk.js works with THREE.Geometry only).
 										scene.add( terrain ); // optional: cameraControls need it.
 										octree.importThreeMesh( terrain );
 										cameraControls.rigidObjects.push( terrain );
+
+									//	three-pathfinder.js
 
 									//	Convert to GLTF.
 										var exporter = new THREE.GLTFExporter();
@@ -342,21 +344,26 @@
 											debugMode && console.log( object );
 											var loader = new THREE.GLTFLoader();
 											loader.parse( JSON.stringify( object, null, 2 ), "", function ( gltf ) {
-												debugMode && console.log( gltf.children[0] );
+												debugMode && console.log( gltf.scene.children[0] );
+												var mesh = gltf.scene.children[0];
+												debugMode && console.log( "isGeometry:", mesh.geometry.isGeometry );
+
+												scene.add( mesh ); // debug!
+												mesh.material.visible = true;
+												mesh.material.wireframe = true;
+
+
+
+
+
+
+
+
+
+
+
+
 											});
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 										});
 

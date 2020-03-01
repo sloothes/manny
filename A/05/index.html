@@ -1065,6 +1065,7 @@
 			//	Player controller.
 				localPlayerController = new MW.CharacterController( localPlayer, playerRadius );
 				localPlayerController.movementSpeed = 50;
+				localPlayerController.maxSlopeGradient = 0.5
 				world.add( localPlayerController ); // important!
 
 			//	CameraLight target.
@@ -1077,60 +1078,6 @@
 				})();
 
 			})();
-/*
-		//	camera-controls.js (demo)
-			(function(){
-
-				cameraControls = new CameraControls( camera, renderer.domElement );
-				cameraControls.getFrontAngle = function(){
-					return (2*Math.PI) + this._spherical.theta; // important!
-				};
-
-				const KEYCODE = {
-					W: 87,
-					A: 65,
-					S: 83,
-					D: 68,
-					ARROW_LEFT : 37,
-					ARROW_UP   : 38,
-					ARROW_RIGHT: 39,
-					ARROW_DOWN : 40,
-				};
-
-			//	const wKey = new holdEvent.KeyboardKeyHold( KEYCODE.W, 100 );
-			//	const aKey = new holdEvent.KeyboardKeyHold( KEYCODE.A, 100 );
-			//	const sKey = new holdEvent.KeyboardKeyHold( KEYCODE.S, 100 );
-			//	const dKey = new holdEvent.KeyboardKeyHold( KEYCODE.D, 100 );
-			//	aKey.addEventListener( 'holding', function( event ) { cameraControls.truck( - 0.01 * event.deltaTime, 0, true ) } );
-			//	dKey.addEventListener( 'holding', function( event ) { cameraControls.truck(   0.01 * event.deltaTime, 0, true ) } );
-			//	wKey.addEventListener( 'holding', function( event ) { cameraControls.forward(   0.01 * event.deltaTime, true ) } );
-			//	sKey.addEventListener( 'holding', function( event ) { cameraControls.forward( - 0.01 * event.deltaTime, true ) } );
-
-			//	const leftKey  = new holdEvent.KeyboardKeyHold( KEYCODE.ARROW_LEFT,  100 );
-			//	const rightKey = new holdEvent.KeyboardKeyHold( KEYCODE.ARROW_RIGHT, 100 );
-			//	const upKey    = new holdEvent.KeyboardKeyHold( KEYCODE.ARROW_UP,    100 );
-			//	const downKey  = new holdEvent.KeyboardKeyHold( KEYCODE.ARROW_DOWN,  100 );
-			//	leftKey.addEventListener ( 'holding', function( event ) { cameraControls.rotate( - 0.1 * THREE.Math.DEG2RAD * event.deltaTime, 0, true ) } );
-			//	rightKey.addEventListener( 'holding', function( event ) { cameraControls.rotate(   0.1 * THREE.Math.DEG2RAD * event.deltaTime, 0, true ) } );
-			//	upKey.addEventListener   ( 'holding', function( event ) { cameraControls.rotate( 0, - 0.05 * THREE.Math.DEG2RAD * event.deltaTime, true ) } );
-			//	downKey.addEventListener ( 'holding', function( event ) { cameraControls.rotate( 0,   0.05 * THREE.Math.DEG2RAD * event.deltaTime, true ) } );
-
-				var clock = new THREE.Clock();
-				(function update(){
-					requestAnimationFrame( update );
-					var delta = clock.getDelta();
-					var elapsed = clock.getElapsedTime();
-					cameraControls.setTarget(
-						localPlayer.position.x, 
-						localPlayer.position.y, 
-						localPlayer.position.z,
-						false
-					);
-					cameraControls.update( delta );
-				})();
-
-			})();
-*/
 
 			(function(){
 
@@ -1418,8 +1365,7 @@
 
 				})();
 
-			//	Add group to scene.
-			//	must be add before animation controller.
+			//	Add group to scene before animation controller.
 				localPlayer.add( group );
 				localPlayerHelper.visible = false;
 				localPlayerController.direction += Math.PI; // important!
@@ -1429,33 +1375,15 @@
 					var loader = new THREE.ImageLoader();
 					loader.setCrossOrigin("anonymous");						// important!
 					loader.load( url, function( image ){
-						var material = localPlayer.getObjectByName("MannyTheSkeleton_v51").material;
 						var mapping = THREE.SphericalReflectionMapping;		// important!
 						var texture = new THREE.Texture( image, mapping );	// important!
-						material.roughness = 0; material.metalness = 1;
-						material.envMap = texture;
-						material.envMap.needsUpdate = true;
-						material.needsUpdate = true;
+						var material = localPlayer.getObjectByName("MannyTheSkeleton_v51").material;
+						material.roughness = 0; material.metalness = 1; material.envMap = texture;
+						material.envMap.needsUpdate = true; material.needsUpdate = true;
 					});
 				})();
-/*
-			//	Update position/rotation.
-				(function update(){
-					requestAnimationFrame( update );
-				//	position.
-					group.position.set(
-						localPlayerController.center.x,
-						localPlayerController.center.y - localPlayerController.radius,
-						localPlayerController.center.z
-					);
-				//	rotation.
-					group.rotation.y = localPlayerController.direction + Math.PI; // important!
-				})();
-*/
-/*
-			//	Animations.
-				var droplistUpdated = new Signal();
 
+/*
 			//	CleanUp animation names.
 				var animations = group.animations;
 				animations.forEach( function( clip ){
@@ -1475,60 +1403,6 @@
 					animationController.play( "idling" ); 
 					droplistUpdated.dispatch( "idling" ); 
 				});
-
-/*
-			//	animationController.motion.jumping.setLoop( THREE.LoopOnce, 0 );
-			//	animationController.motion.jumping.clampWhenFinished = true;
-			//	animationController.motion.falldown.setLoop( THREE.LoopOnce, 0 );
-			//	animationController.motion.falldown.clampWhenFinished = true;
-			//	animationController.motion["t-pose"].setLoop( THREE.LoopOnce, 0 );
-			//	animationController.motion["t-pose"].clampWhenFinished = true;
-
-			//	localPlayer controller motions.
-				localPlayerController.addEventListener( "startWalking", function () { 
-					animationController.play( "running" ); 
-					droplistUpdated.dispatch( "running" ); 
-				});
-				localPlayerController.addEventListener( "startSliding", function () { 
-					animationController.play( "sliding" ); 
-					droplistUpdated.dispatch( "sliding" ); 
-				});
-				localPlayerController.addEventListener( "startFalling", function () { 
-					animationController.play( "sliding" ); 
-					droplistUpdated.dispatch( "sliding" ); 
-				});
-
-			//	Jumping.
-				localPlayerController.addEventListener( "startJumping", function () { 
-					if ( localPlayerController.isRunning ) {
-						animationController.play("jumping");
-						animationController.motion.jumping.reset();
-						droplistUpdated.dispatch( "jumping" );
-					} else {
-						animationController.play( "sliding" );
-						droplistUpdated.dispatch( "sliding" );
-					}
-				});
-
-			//	Additonal.
-				localPlayerController.addEventListener( "startTexting", function () { 
-					animationController.play( "texting" ); 
-					animationController.motion.texting.reset();
-					droplistUpdated.dispatch( "texting" ); 
-				});
-
-				localPlayerController.addEventListener( "startPhoning", function () { 
-					animationController.play( "phoning" ); 
-					animationController.motion.phoning.reset();
-					droplistUpdated.dispatch( "phoning" ); 
-				});
-
-				localPlayerController.addEventListener( "fallDown", function () { 
-					animationController.play( "falldown" ); 
-					animationController.motion.falldown.reset();
-					droplistUpdated.dispatch( "falldown" ); 
-				});
-*/
 
 			//	Animation droplist.
 				(function(){
@@ -1592,20 +1466,26 @@
 
 				mannyLoaded.add(function(){
 					var loader = new THREE.FBXLoader();
-					var url = "/manny/animations/RunningJump.fbx";
+					var url = "/manny/animations/Falling.fbx";
 					loader.load( url, function( group ){
 						console.log( group.animations );
 
 					//	Add animation.
-						group.animations[0].name = "running_jump";
+						group.animations[0].name = "falling";
 						var clip = group.animations[0];
 						var mixer = animationController.mixer;
 						var object = animationController.object;
-						animationController.motion.running_jump = mixer.clipAction( clip, object );
+						animationController.motion.falling = mixer.clipAction( clip, object );
 
 					//	Add option.
 						var select = document.getElementById("animation-droplist");
 						select && select.appendChild( createOption( clip.name ) );
+
+					//	Bind events.
+					//	localPlayerController.addEventListener( "startFalling", function () { 
+					//		animationController.play( "falling" ); 
+					//		droplistUpdated.dispatch( "falling" ); 
+					//	});
 
 					});
 				});
@@ -1628,22 +1508,11 @@
 						select && select.appendChild( createOption( clip.name ) );
 
 					//	Bind events.
-/*
-						localPlayerController.addEventListener( "startJumping",  function () { 
-							if ( localPlayerController.isRunning ) {
-								animationController.play( "running_jump" );
-								animationController.motion.running_jump.reset(); // important!
-								droplistUpdated.dispatch( "running_jump" ); 
-							} else {
-								animationController.play( "wobbling" ); 
-								droplistUpdated.dispatch( "wobbling" ); 
-							}
-						});
-*/
 						localPlayerController.addEventListener( "startSliding", function () { 
 							animationController.play( "wobbling" ); 
 							droplistUpdated.dispatch( "wobbling" ); 
 						});
+
 						localPlayerController.addEventListener( "startFalling", function () { 
 							animationController.play( "wobbling" ); 
 							droplistUpdated.dispatch( "wobbling" ); 
@@ -1654,54 +1523,101 @@
 
 				mannyLoaded.add(function(){
 					var loader = new THREE.FBXLoader();
-					var url = "/manny/animations/Jumping.fbx";
+					var url = "/manny/animations/RunningJump.fbx";
 					loader.load( url, function( group ){
 						console.log( group.animations );
 
 					//	Add animation.
-						group.animations[0].name = "jumping";
+						group.animations[0].name = "running_jump";
 						var clip = group.animations[0];
 						var mixer = animationController.mixer;
 						var object = animationController.object;
-						animationController.motion.jumping = mixer.clipAction( clip, object );
-						animationController.motion.jumping.setLoop( THREE.LoopOnce, 0 );
-						animationController.motion.jumping.clampWhenFinished = true;
+						animationController.motion.running_jump = mixer.clipAction( clip, object );
+
+					//	Add option.
+						var select = document.getElementById("animation-droplist");
+						select && select.appendChild( createOption( clip.name ) );
+
+					});
+				});
+
+				mannyLoaded.add(function(){
+					var loader = new THREE.FBXLoader();
+					var url = "/manny/animations/JumpingUp.fbx";
+					loader.load( url, function( group ){
+						console.log( group.animations );
+
+					//	Add animation.
+						group.animations[0].name = "jumping_up";
+						var clip = group.animations[0];
+						var mixer = animationController.mixer;
+						var object = animationController.object;
+						animationController.motion.jumping_up = mixer.clipAction( clip, object );
+						animationController.motion.jumping_up.timeScale = 0.35; 			 // important!
+						animationController.motion.jumping_up.setLoop( THREE.LoopPingPong ); // important!
+					//	animationController.motion.jumping_up.clampWhenFinished = false; 	 // important!
 
 					//	Add option.
 						var select = document.getElementById("animation-droplist");
 						select && select.appendChild( createOption( clip.name ) );
 
 					//	Bind events.
-						localPlayerController.addEventListener( "startJumping",  function () { 
-							if ( localPlayerController.isRunning ) {
+						localPlayerController.addEventListener( "startJumping", function() { 
+							if ( !localPlayerController.isRunning ) {
+								animationController.play( "jumping_up" ); 
+								animationController.motion.jumping_up.reset(); // important!
+								droplistUpdated.dispatch( "jumping_up" ); 
+							} else {
 								animationController.play( "running_jump" );
 								animationController.motion.running_jump.reset(); // important!
 								droplistUpdated.dispatch( "running_jump" ); 
-							} else {
-								animationController.play( "jumping" ); 
-								droplistUpdated.dispatch( "jumping" ); 
-							}
-						});
-
-					//	Watching currentJumpPower (demo).
-						watch( localPlayerController, "currentJumpPower", 
-						function(property, action, currentJumpPower, previousJumpPower){
-
-						//	Jumping Up.
-							if ( currentJumpPower == 1 ) {
-								debugMode && console.log( "JumpingUp:", currentJumpPower, previousJumpPower );
-							}
-
-						//	Jumping Down.
-							if ( currentJumpPower < 0 && previousJumpPower > 0 ) {
-								debugMode && console.log( "JumpingDown:", currentJumpPower, previousJumpPower );
 							}
 						});
 
 					});
-
 				});
 
+/*
+			//	Watching currentJumpPower (hack).
+				watch( localPlayerController, "currentJumpPower", 
+				function(property, action, currentJumpPower, previousJumpPower){
+
+					if ( !localPlayerController.isJumping ) return;
+					if ( currentJumpPower == 1 || ( currentJumpPower < 0 && previousJumpPower > 0 ) ) {
+						debugMode && console.log( property, currentJumpPower, previousJumpPower ); // debug!
+					}
+
+				//	Jumping Up.
+					if ( currentJumpPower == 1 ) jumpingUp();
+
+				//	Jumping Down.
+					if ( currentJumpPower < 0 && previousJumpPower > 0 ) jumpingDown();
+					
+					function jumpingDown(){
+						if ( localPlayerController.isRunning ) return;
+						animationController.play( "wobbling" ); 
+						droplistUpdated.dispatch( "wobbling" ); 
+					}
+
+					function jumpingUp(){ 
+
+						if ( !localPlayerController.isRunning )  {
+							animationController.play( "jumping_up" );
+							animationController.motion.jumping_up.reset(); // important!
+							droplistUpdated.dispatch( "jumping_up" );
+							return;
+						}
+
+						if ( localPlayerController.isRunning ) {
+							animationController.play( "running_jump" );
+							animationController.motion.running_jump.reset(); // important!
+							droplistUpdated.dispatch( "running_jump" );
+							return;
+						} 
+					}
+
+				});
+*/
 
 				function createOption(name){
 					var option = document.createElement("option");
@@ -1710,7 +1626,6 @@
 				}
 
 				mannyLoaded.dispatch();
-
 			}, 
 
 			function onProgress( e ){

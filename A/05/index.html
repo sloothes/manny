@@ -1553,9 +1553,9 @@
 						var mixer = animationController.mixer;
 						var object = animationController.object;
 						animationController.motion.jumping_up = mixer.clipAction( clip, object );
-						animationController.motion.jumping_up.timeScale = 0.35; 			 // important!
-						animationController.motion.jumping_up.setLoop( THREE.LoopPingPong ); // important!
-					//	animationController.motion.jumping_up.clampWhenFinished = false; 	 // important!
+						animationController.motion.jumping_up.setDuration(0.6); // half++ jump duration in sec.
+						animationController.motion.jumping_up.clampWhenFinished = true;
+						animationController.motion.jumping_up.setLoop( THREE.LoopPingPong );
 
 					//	Add option.
 						var select = document.getElementById("animation-droplist");
@@ -1576,23 +1576,22 @@
 
 					});
 				});
-
 /*
 			//	Watching currentJumpPower (hack).
 				watch( localPlayerController, "currentJumpPower", 
 				function(property, action, currentJumpPower, previousJumpPower){
 
 					if ( !localPlayerController.isJumping ) return;
+
 					if ( currentJumpPower == 1 || ( currentJumpPower < 0 && previousJumpPower > 0 ) ) {
-						debugMode && console.log( property, currentJumpPower, previousJumpPower ); // debug!
+					//	debugMode && console.log( property, currentJumpPower, previousJumpPower ); // debug!
 					}
 
-				//	Jumping Up.
-					if ( currentJumpPower == 1 ) jumpingUp();
+					if ( currentJumpPower == 1 ) 
+						jumpingUp();
+					if ( currentJumpPower < 0 && previousJumpPower > 0 ) 
+						jumpingDown();
 
-				//	Jumping Down.
-					if ( currentJumpPower < 0 && previousJumpPower > 0 ) jumpingDown();
-					
 					function jumpingDown(){
 						if ( localPlayerController.isRunning ) return;
 						animationController.play( "wobbling" ); 
@@ -1615,10 +1614,8 @@
 							return;
 						} 
 					}
-
 				});
 */
-
 				function createOption(name){
 					var option = document.createElement("option");
 					option.text = option.value = name;

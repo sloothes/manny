@@ -100,8 +100,8 @@
 			var debugMode = true; // important!
 			MW.install( THREE ); // important!
 		//	CameraControls.install( {THREE:THREE} ); // demo!
-			THREE.Pathfinding = threePathfinding.Pathfinding;
-			THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
+		//	THREE.Pathfinding = threePathfinding.Pathfinding;
+		//	THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
 
 			Number.prototype.format = function (){
 				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
@@ -1054,31 +1054,6 @@
 
 			})();
 
-/*
-		//	remotePlayer Controller.
-			(function(){
-
-				var playerRadius = 10;
-				remotePlayer = new THREE.Object3D();
-				remotePlayer.position.set( 0, 10, -100 );
-				remotePlayer.name = "remotePlayer";
-
-				remotePlayerHelper = new THREE.Mesh(
-					new THREE.TetrahedronGeometry(10, 3),
-					new THREE.MeshBasicMaterial( { color: 0xffff00,  wireframe: true} )
-				);
-				remotePlayerHelper.name = "remoteHelper";
-				remotePlayer.add( remotePlayerHelper );
-
-				scene.add( remotePlayer );
-
-				remotePlayerController = new MW.CharacterController( remotePlayer, playerRadius );
-				remotePlayerController.movementSpeed = 40;
-				world.add( remotePlayerController ); // important!
-
-			})();
-*/
-
 		</script>
 
 		<script>
@@ -1319,57 +1294,61 @@
 
 		//	turnTo.js
 
-			localPlayerController.turnTo    = turnto.bind( localPlayerController );
-			localPlayerController.turnBack  = turnto.bind( localPlayerController,  0 );
-			localPlayerController.turnFront = turnto.bind( localPlayerController,  Math.PI );
-			localPlayerController.turnLeft  = turnto.bind( localPlayerController, -Math.PI/2 );
-			localPlayerController.turnRight = turnto.bind( localPlayerController,  Math.PI/2 );
+			(function(){
 
-			function turnto( rad, immediate ){
+				localPlayerController.turnTo    = turnto.bind( localPlayerController );
+				localPlayerController.turnBack  = turnto.bind( localPlayerController,  0 );
+				localPlayerController.turnFront = turnto.bind( localPlayerController,  Math.PI );
+				localPlayerController.turnLeft  = turnto.bind( localPlayerController, -Math.PI/2 );
+				localPlayerController.turnRight = turnto.bind( localPlayerController,  Math.PI/2 );
 
-				var requestAnimationFrameID;
-				var limit = THREE.Math.degToRad(1);
-				var frontAngle = Math.PI - cameraControls.getFrontAngle();
-				var deltaAngle = getDeltaAngle( this.direction, frontAngle + rad );
+				function turnto( rad, immediate ){
 
-				var turn = () => {
+					var requestAnimationFrameID;
+					var limit = THREE.Math.degToRad(1);
+					var frontAngle = Math.PI - cameraControls.getFrontAngle();
+					var deltaAngle = getDeltaAngle( this.direction, frontAngle + rad );
 
-					requestAnimationFrameID = requestAnimationFrame( turn );
+					var turn = () => {
 
-					if ( isNaN( deltaAngle ) ) {
-						cancelAnimationFrame( requestAnimationFrameID );
-						return;
+						requestAnimationFrameID = requestAnimationFrame( turn );
+
+						if ( isNaN( deltaAngle ) ) {
+							cancelAnimationFrame( requestAnimationFrameID );
+							return;
+						}
+
+						if ( immediate ) {
+							this.direction += deltaAngle;
+							cancelAnimationFrame( requestAnimationFrameID );
+							return;
+						}
+
+						if ( Math.abs( deltaAngle ) < limit ) {
+							this.direction += deltaAngle;
+							cancelAnimationFrame( requestAnimationFrameID );
+							return;
+						}
+
+						this.direction = mod( this.direction += ( deltaAngle *= 0.5 ), 2 * Math.PI );
+
+					};
+
+					return turn();
+
+					function mod( a, n ) { 
+						return ( a % n + n ) % n;  // important!
+					} 
+
+					function getDeltaAngle( current, target ) {
+						var a = mod( ( current - target ), 2 * Math.PI );
+						var b = mod( ( target - current ), 2 * Math.PI );
+						return a < b ? -a : b;
 					}
 
-					if ( immediate ) {
-						this.direction += deltaAngle;
-						cancelAnimationFrame( requestAnimationFrameID );
-						return;
-					}
-
-					if ( Math.abs( deltaAngle ) < limit ) {
-						this.direction += deltaAngle;
-						cancelAnimationFrame( requestAnimationFrameID );
-						return;
-					}
-
-					this.direction = mod( this.direction += ( deltaAngle *= 0.5 ), 2 * Math.PI );
-
-				};
-
-				return turn();
-
-				function mod( a, n ) { 
-					return ( a % n + n ) % n;  // important!
-				} 
-
-				function getDeltaAngle( current, target ) {
-					var a = mod( ( current - target ), 2 * Math.PI );
-					var b = mod( ( target - current ), 2 * Math.PI );
-					return a < b ? -a : b;
 				}
 
-			}
+			})();
 
 		//	joystickControls.
 
@@ -1526,34 +1505,6 @@
 					});
 
 				})();
-
-/*
-				//	TODO: Create mesh droplist to avatar tab. [ ]
-				//	TODO: Create material droplist to material tab. [v]
-
-				//	Material droplist.
-					var select = document.getElementById("material-droplist");
-					meshes.forEach( function( mesh ){
-						if ( Array.isArray( mesh.material ) ) {
-							mesh.material.forEach( function( material ){
-								var name = material.name;
-								var value = material.uuid;
-								select.appendChild( createOption(name, value) );
-							});
-						} else {
-							var name = mesh.material.name;
-							var value = mesh.material.uuid;
-							select.appendChild( createOption(name, value) );
-						}
-					});
-
-					function createOption(name, value){
-						var option = document.createElement("option");
-						option.text = name;
-						option.value = value;
-						return option;
-					}
-*/
 
 			//	Add group to scene before animation controller.
 				localPlayer.add( group );
@@ -1853,47 +1804,6 @@
 
 		<script>
 /*
-		//	WatchJS Demo.
-			var properties = "center,radius,isOnSlope,isIdling,isRunning,isJumping,direction,currentJumpPower";
-			watch( localPlayerController, properties.split(","), function(property, action, current, previous){
-				debugMode && console.log( property, current, previous );
-			});
-
-		//	Watching currentJumpPower (hack).
-			watch( localPlayerController, "currentJumpPower", 
-				  function(property, action, currentJumpPower, previousJumpPower){
-
-				if ( !localPlayerController.isJumping ) return;
-
-				if ( currentJumpPower == 1 || ( currentJumpPower < 0 && previousJumpPower > 0 ) ) {
-					//	debugMode && console.log( property, currentJumpPower, previousJumpPower ); // debug!
-				}
-
-				if ( currentJumpPower == 1 ) 
-					jumpingUp();
-				if ( currentJumpPower < 0 && previousJumpPower > 0 ) 
-					jumpingDown();
-
-				function jumpingDown(){
-					if ( localPlayerController.isRunning ) return;
-					animationController.play( "wobbling" ); 
-				}
-
-				function jumpingUp(){ 
-
-					if ( !localPlayerController.isRunning )  {
-						animationController.play( "jumpingUp" );
-						animationController.motion.jumpingUp.reset(); // important!
-						return;
-					}
-
-					if ( localPlayerController.isRunning ) {
-						animationController.play( "runningJump" );
-						animationController.motion.runningJump.reset(); // important!
-						return;
-					} 
-				}
-			});
 */
 		</script>
 

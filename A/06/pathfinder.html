@@ -1895,18 +1895,38 @@
 							var group = loader.parse( data );
 
 							fbx = group; // debug!
+							groundHelper.visible = false; // debug!
+
 
 						//	three-pathfinding demo.
 
 							var mesh = group.children[0];
-							var geometry = mesh.geometry;
-							mesh.position.set( 0, 10, 0);
 							mesh.material = new THREE.MeshLambertMaterial({
 								visible:true, wireframe:false, side:2,
-							}); 
+							});
+
+							scene.add( mesh );  // level.
 							scene.add( mesh ); // level.
 							debugMode && console.log( mesh );
-							groundHelper.visible = false; // debug!
+
+						//	Add to octree.
+
+							(function(){
+
+							//	(meshwalk.js works with THREE.Geometry only).
+								var geometry = new THREE.Geometry().fromBufferGeometry( mesh.geometry );
+							//	geometry.applyMatrix( mesh.matrix ); // normals need flipping.
+								var material = new THREE.MeshBasicMaterial({wireframe:true});
+								var terrain = new THREE.Mesh( geometry, material);
+								scene.add( terrain ); // optional: cameraControls only need it.
+								terrain.applyMatrix( mesh.matrix ); // normals need flipping.
+								octree.importThreeMesh( terrain );
+
+							})();
+							
+							return; // terrain normals need flipping.
+
+						//	Add nav mesh.
 
 							var name = "DemoZone";
 							var path; // important!
@@ -1921,6 +1941,7 @@
 
 						//	Three-pathfinding accepts only THREE.BufferGeometry 
 						//	but internal works with THREE.Geometry... Madness!
+							var geometry = mesh.geometry;
 							zone = THREE.Pathfinding.createZone( geometry );
 							debugMode && console.log( "zone:", zone );
 
@@ -1974,9 +1995,9 @@
 								if ( !mesh || !(path||[]).length ) return;
 								debugMode && console.log( path );
 
+							/*
 								var targetPosition = path[ 0 ];
 								var velocity = targetPosition.clone().sub( playerPosition );
-
 								if (velocity.lengthSq() > 0.05 * 0.05) {
 									velocity.normalize();
 								//	Move player to target.
@@ -1986,7 +2007,7 @@
 								//	Remove node from the path we calculated.
 									path.shift();
 								}
-
+							*/
 							})();
 
 						}, false );

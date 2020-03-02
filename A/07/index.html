@@ -739,7 +739,7 @@
 									group.name = filename;
 									console.log( group );
 
-									fbx = group; // debug!
+								//	fbx = group; // debug!
 
 								//	Add animations.
 									console.log( group.animations );
@@ -1071,14 +1071,15 @@
 				camera = new THREE.PerspectiveCamera( 50, aspect, 1, 10000 );
 				camera.position.set(0, 20, 50);
 
-				window.addEventListener("resize", function onWindowResize() {
-					camera.aspect = (window.innerWidth - w) / window.innerHeight;
-					camera.updateProjectionMatrix();
-				});
-
 			})();
 
 /*
+		//	Moved in renderer.
+			window.addEventListener("resize", function onWindowResize() {
+				camera.aspect = (window.innerWidth - w) / window.innerHeight;
+				camera.updateProjectionMatrix();
+			});
+
 		//	Editor Controls.
 			(function(){
 				controls = new THREE.EditorControls(camera);
@@ -1137,13 +1138,17 @@
 					renderer.setSize( (window.innerWidth - w), window.innerHeight );
 				});
 
+				window.addEventListener("resize", function onWindowResize() {
+					camera.aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight;
+					camera.updateProjectionMatrix();
+				});
+
 				mouse = new THREE.Vector2();
 
 				renderer.domElement.addEventListener("mousemove", function(e) {
-					mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-					mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+					mouse.x = ( e.clientX / this.clientWidth ) * 2 - 1;
+					mouse.y = - ( e.clientY / this.clientHeight ) * 2 + 1;
 				});
-
 
 				(function render(){
 					requestAnimationFrame( render );
@@ -1158,9 +1163,10 @@
 
 				world = new MW.World();
 
-				var min = new THREE.Vector3( -1500, -1500, -1500 );
-				var max = new THREE.Vector3(  1500,  1500,  1500 );
-				var partition = 5;
+				var x = 1500, y = 1500, z = 1500;
+				var min = new THREE.Vector3( -x, -y, -z );
+				var max = new THREE.Vector3(  x,  y,  z );
+				var partition = 7; // nodes: Math.pow( 8, partition )
 
 				octree = new MW.Octree( min, max, partition );
 				world.add( octree );
@@ -1177,10 +1183,11 @@
 			})();
 
 		//	ground.js
+
 			(function(){
 
 				var ground = new THREE.Mesh(
-					new THREE.PlaneGeometry( 3000, 3000, 1, 1 ),
+					new THREE.PlaneGeometry( 3000, 3000, 1, 1 ).rotateX(-Math.PI/2),
 					new THREE.MeshLambertMaterial({ 
 						opacity:1, 
 						color:0x829ec4,
@@ -1189,7 +1196,7 @@
 
 			//	We need only the geometry of the ground
 			//	so there is not need to add to the scene.
-				ground.rotation.x = -Math.PI / 2; // THREE.Math.degToRad( -90 );
+			//	ground.rotation.x = -Math.PI / 2; // THREE.Math.degToRad( -90 );
 				octree.importThreeMesh( ground ); // important!
 			//	scene.add( ground ); // optional!
 
@@ -1197,13 +1204,33 @@
 				groundHelper = new THREE.GridHelper( 3000, 300, 0x444444, 0x444444 );
 				scene.add( groundHelper );
 
+			//	Raycaster helper.
+				setTimeout(function(){
+					var raycaster = new THREE.Raycaster();
+					var rayhelper = new THREE.Mesh(
+						new THREE.CircleBufferGeometry( 2, 32 ).rotateX(-Math.PI/2),
+						new THREE.MeshBasicMaterial( { color:0xffff00, wireframe:false} )
+					);
+					renderer.domElement.addEventListener("mousemove", function(e) {
+						camera.updateMatrixWorld();
+						raycaster.setFromCamera( mouse, camera );
+						var intersects = raycaster.intersectObject( ground );
+						if ( !intersects.length ) return;
+						rayhelper.position.copy( intersects[0].point );
+					});
+					scene.add( rayhelper );
+				});
+
 			})();
 
 
 		//	localPlayer Controller.
+
 			(function(){
 
 				var playerRadius = 10;
+
+			//	local player.
 				localPlayer = new THREE.Object3D();
 				localPlayer.position.set( 0, 10, 0 );
 				localPlayer.name = "localPlayer";
@@ -1214,6 +1241,7 @@
 					new THREE.SphereGeometry( playerRadius, 8, 6 ),
 					new THREE.MeshBasicMaterial( { color: 0xff0000,  wireframe: true} )
 				);
+
 				localPlayerHelper.name = "playerhelper";
 				localPlayer.add( localPlayerHelper );
 
@@ -1457,38 +1485,40 @@
 			var loader = new THREE.FBXLoader();
 			loader.load( url, function( group ){
 
+				fbx = group; // debug!
+
 			//	object is THREE.Group.
 				group.name = "MannyTheSkeleton5.1";
 				var s = 0.00033; group.scale.set(s,s,s); // important!
-				group.position.y = -localPlayerController.radius;
+			//	group.position.y = -localPlayerController.radius;
 				debugMode && console.log( group ); 
 
-				(function(){
+			//	Replace materials.
+				group.children.forEach( function( child ){
 
-				//	Replace materials.
-					group.children.forEach( function( child ){
+					if ( child.type !== "SkinnedMesh" ) return;
 
-						if ( child.type !== "SkinnedMesh" ) return;
-
-						if ( Array.isArray(child.material) ) {
-							child.material = child.material.map( function( item ){
-								var name = item.name;
-								return new THREE.MeshStandardMaterial({
-									name:name, skinning:true, // important!
-								});
-							});
-
-						} else {
-
-							var name = child.material.name;
-							child.material = new THREE.MeshStandardMaterial({
+					if ( Array.isArray(child.material) ) {
+						child.material = child.material.map( function( item ){
+							var name = item.name;
+							return new THREE.MeshStandardMaterial({
 								name:name, skinning:true, // important!
 							});
+						});
 
-						}
+					} else {
 
-						debugMode && console.log( child.material ); 
-					});
+						var name = child.material.name;
+						child.material = new THREE.MeshStandardMaterial({
+							name:name, skinning:true, // important!
+						});
+
+					}
+
+					debugMode && console.log( child.material ); 
+				});
+
+				(function(){
 
 				//	Collect skinned meshes.
 					var meshes = group.children.filter( function( item ){
@@ -1506,11 +1536,6 @@
 
 				})();
 
-			//	Add group to scene before animation controller.
-				localPlayer.add( group );
-				localPlayerHelper.visible = false;
-				localPlayerController.direction += Math.PI; // important!
-
 				(function(){
 					var url = "https://i.imgur.com/Fx9154f.png";
 					var loader = new THREE.ImageLoader();
@@ -1518,10 +1543,31 @@
 					loader.load( url, function( image ){
 						var mapping = THREE.SphericalReflectionMapping;		// important!
 						var texture = new THREE.Texture( image, mapping );	// important!
-						var material = localPlayer.getObjectByName("MannyTheSkeleton_v51").material;
+						var material = group.getObjectByName("MannyTheSkeleton_v51").material;
 						material.roughness = 0; material.metalness = 1; material.envMap = texture;
 						material.envMap.needsUpdate = true; material.needsUpdate = true;
 					});
+				})();
+
+			//	Add group to scene before animation controller.
+			//	localPlayer.add( group );
+				localPlayerHelper.visible = true;
+				localPlayerController.direction += Math.PI; // important!
+
+			//	Update group rotation.
+				(function update(){
+					requestAnimationFrame( update );
+					group.rotation.y = localPlayerController.direction + Math.PI; // important!
+				})();
+
+			//	Update group position.
+				(function update(){
+					requestAnimationFrame( update );
+					group.position.set( 
+						localPlayerController.center.x, 
+						localPlayerController.center.y-localPlayerController.radius, // -l0
+						localPlayerController.center.z 
+					);
 				})();
 
 /*
@@ -1534,192 +1580,209 @@
 */
 
 			//	Animation controller.
-				var animations = group.animations;
-				group.animations[0].name = "idling";
 
-				animationController = new MW.AnimationController( group );
-				debugMode && console.log( "animations:", Object.keys( animationController.motion ).join() );
-
-				localPlayerController.addEventListener( "startIdling",  function () { 
-					animationController.play( "idling" ); 
-				});
-
-			//	Animation droplist.
 				(function(){
 
-					var select = document.getElementById("animation-droplist");
-					Object.keys( animationController.motion ).forEach( function( name ){
-						select.appendChild( createOption( name ) );
+					var animations = group.animations;
+					group.animations[0].name = "idling";
+
+					animationController = new MW.AnimationController( group );
+					debugMode && console.log( "animations:", Object.keys( animationController.motion ).join() );
+
+					localPlayerController.addEventListener( "startIdling",  function () { 
+						animationController.play( "idling" ); 
 					});
 
-					select.addEventListener("change", function(){
-						var name = select.value;
-						animationController.play( name );
-						if ( animationController.motion[name].clampWhenFinished ) {
-							animationController.motion[ name ].reset();
-						}
-					});
+				//	Animation droplist.
 
-					watch( animationController, "currentMotionName", function(prop, action, value){
-						select.value = value; // debugMode && console.log( prop, action, value );
-					});
+					(function(){
 
-				})();
-
-			//	Animation controller update.
-				var clock = new THREE.Clock();
-				(function update(){
-					requestAnimationFrame( update );
-					var delta = clock.getDelta();
-					animationController.update( delta );
-				})();
-
-				debugMode && console.log( animationController ); 
-				localPlayerController.dispatchEvent( {type:"startIdling"} );
-
-			//	LOAD ANIMATIONS.
-
-				mannyLoaded.add(function(){
-					var loader = new THREE.FBXLoader();
-					var url = "/manny/animations/Running.fbx";
-					loader.load( url, function( group ){
-						console.log( group.animations );
-
-					//	Add animation.
-						group.animations[0].name = "running";
-						var clip = group.animations[0];
-						var mixer = animationController.mixer;
-						var object = animationController.object;
-						animationController.motion.running = mixer.clipAction( clip, object );
-
-					//	Add option.
 						var select = document.getElementById("animation-droplist");
-						select && select.appendChild( createOption( clip.name ) );
-
-					//	Bind events.
-						localPlayerController.addEventListener( "startWalking",  function () { 
-							animationController.play( "running" ); 
-							animationController.motion.running.reset(); // important!
+						Object.keys( animationController.motion ).forEach( function( name ){
+							select.appendChild( createOption( name ) );
 						});
 
-					});
-				});
-
-				mannyLoaded.add(function(){
-					var loader = new THREE.FBXLoader();
-					var url = "/manny/animations/Falling.fbx";
-					loader.load( url, function( group ){
-						console.log( group.animations );
-
-					//	Add animation.
-						group.animations[0].name = "falling";
-						var clip = group.animations[0];
-						var mixer = animationController.mixer;
-						var object = animationController.object;
-						animationController.motion.falling = mixer.clipAction( clip, object );
-
-					//	Add option.
-						var select = document.getElementById("animation-droplist");
-						select && select.appendChild( createOption( clip.name ) );
-
-					//	Bind events.
-					//	localPlayerController.addEventListener( "startFalling", function () { 
-					//		animationController.play( "falling" ); 
-					//	});
-
-					});
-				});
-
-				mannyLoaded.add(function(){
-					var loader = new THREE.FBXLoader();
-					var url = "/manny/animations/Wobbling.fbx";
-					loader.load( url, function( group ){
-						console.log( group.animations );
-
-					//	Add animation.
-						group.animations[0].name = "wobbling";
-						var clip = group.animations[0];
-						var mixer = animationController.mixer;
-						var object = animationController.object;
-						animationController.motion.wobbling = mixer.clipAction( clip, object );
-
-					//	Add option.
-						var select = document.getElementById("animation-droplist");
-						select && select.appendChild( createOption( clip.name ) );
-
-					//	Bind events.
-						localPlayerController.addEventListener( "startSliding", function () { 
-							animationController.play( "wobbling" ); 
-						});
-
-						localPlayerController.addEventListener( "startFalling", function () { 
-							animationController.play( "wobbling" ); 
-						});
-
-					});
-				});
-
-				mannyLoaded.add(function(){
-					var loader = new THREE.FBXLoader();
-					var url = "/manny/animations/RunningJump.fbx";
-					loader.load( url, function( group ){
-						console.log( group.animations );
-
-					//	Add animation.
-						group.animations[0].name = "runningJump";
-						var clip = group.animations[0];
-						var mixer = animationController.mixer;
-						var object = animationController.object;
-						animationController.motion.runningJump = mixer.clipAction( clip, object );
-
-					//	Add option.
-						var select = document.getElementById("animation-droplist");
-						select && select.appendChild( createOption( clip.name ) );
-
-					});
-				});
-
-				mannyLoaded.add(function(){
-					var loader = new THREE.FBXLoader();
-					var url = "/manny/animations/JumpingUp.fbx";
-					loader.load( url, function( group ){
-						console.log( group.animations );
-
-					//	Add animation.
-						group.animations[0].name = "jumpingUp";
-						var clip = group.animations[0];
-						var mixer = animationController.mixer;
-						var object = animationController.object;
-						animationController.motion.jumpingUp = mixer.clipAction( clip, object );
-						animationController.motion.jumpingUp.setDuration(0.6); // half++ jump duration in sec.
-						animationController.motion.jumpingUp.clampWhenFinished = true;
-						animationController.motion.jumpingUp.setLoop( THREE.LoopPingPong );
-
-					//	Add option.
-						var select = document.getElementById("animation-droplist");
-						select && select.appendChild( createOption( clip.name ) );
-
-					//	Bind events.
-						localPlayerController.addEventListener( "startJumping", function() { 
-							if ( !localPlayerController.isRunning ) {
-								animationController.play( "jumpingUp" ); 
-								animationController.motion.jumpingUp.reset(); // important!
-							} else {
-								animationController.play( "runningJump" );
-								animationController.motion.runningJump.reset(); // important!
+						select.addEventListener("change", function(){
+							var name = select.value;
+							animationController.play( name );
+							if ( animationController.motion[name].clampWhenFinished ) {
+								animationController.motion[ name ].reset();
 							}
 						});
 
-					});
-				});
+						watch( animationController, "currentMotionName", function(prop, action, value){
+							select.value = value; // debugMode && console.log( prop, action, value );
+						});
 
-				function createOption(name){
-					var option = document.createElement("option");
-					option.text = option.value = name;
-					return option;
-				}
+					})();
 
-				mannyLoaded.dispatch();
+					function createOption(name){
+						var option = document.createElement("option");
+						option.text = option.value = name;
+						return option;
+					}
+
+				//	Animation controller update.
+					var clock = new THREE.Clock();
+
+					(function update(){
+						requestAnimationFrame( update );
+						var delta = clock.getDelta();
+						animationController.update( delta );
+					})();
+
+					debugMode && console.log( animationController ); 
+					localPlayerController.dispatchEvent( {type:"startIdling"} );
+
+
+				//	LOAD ANIMATIONS.
+
+
+					(function(){
+						var loader = new THREE.FBXLoader();
+						var url = "/manny/animations/Running.fbx";
+						loader.load( url, function( group ){
+							console.log( group.animations );
+
+						//	Add animation.
+							group.animations[0].name = "running";
+							var clip = group.animations[0];
+							var mixer = animationController.mixer;
+							var object = animationController.object;
+							animationController.motion.running = mixer.clipAction( clip, object );
+
+						//	Add option.
+							var select = document.getElementById("animation-droplist");
+							select && select.appendChild( createOption( clip.name ) );
+
+						//	Bind events.
+							localPlayerController.addEventListener( "startWalking",  function () { 
+								animationController.play( "running" ); 
+								animationController.motion.running.reset(); // important!
+							});
+
+						});
+					})();
+
+					(function(){
+						var loader = new THREE.FBXLoader();
+						var url = "/manny/animations/Falling.fbx";
+						loader.load( url, function( group ){
+							console.log( group.animations );
+
+						//	Add animation.
+							group.animations[0].name = "falling";
+							var clip = group.animations[0];
+							var mixer = animationController.mixer;
+							var object = animationController.object;
+							animationController.motion.falling = mixer.clipAction( clip, object );
+
+						//	Add option.
+							var select = document.getElementById("animation-droplist");
+							select && select.appendChild( createOption( clip.name ) );
+
+						//	Bind events.
+						//	localPlayerController.addEventListener( "startFalling", function () { 
+						//		animationController.play( "falling" ); 
+						//	});
+
+						});
+					})();
+
+					(function(){
+						var loader = new THREE.FBXLoader();
+						var url = "/manny/animations/Wobbling.fbx";
+						loader.load( url, function( group ){
+							console.log( group.animations );
+
+						//	Add animation.
+							group.animations[0].name = "wobbling";
+							var clip = group.animations[0];
+							var mixer = animationController.mixer;
+							var object = animationController.object;
+							animationController.motion.wobbling = mixer.clipAction( clip, object );
+
+						//	Add option.
+							var select = document.getElementById("animation-droplist");
+							select && select.appendChild( createOption( clip.name ) );
+
+						//	Bind events.
+							localPlayerController.addEventListener( "startSliding", function () { 
+								animationController.play( "wobbling" ); 
+							});
+
+							localPlayerController.addEventListener( "startFalling", function () { 
+								animationController.play( "wobbling" ); 
+							});
+
+						});
+					})();
+
+					(function(){
+						var loader = new THREE.FBXLoader();
+						var url = "/manny/animations/RunningJump.fbx";
+						loader.load( url, function( group ){
+							console.log( group.animations );
+
+						//	Add animation.
+							group.animations[0].name = "runningJump";
+							var clip = group.animations[0];
+							var mixer = animationController.mixer;
+							var object = animationController.object;
+							animationController.motion.runningJump = mixer.clipAction( clip, object );
+
+						//	Add option.
+							var select = document.getElementById("animation-droplist");
+							select && select.appendChild( createOption( clip.name ) );
+
+						});
+					})();
+
+					(function(){
+						var loader = new THREE.FBXLoader();
+						var url = "/manny/animations/JumpingUp.fbx";
+						loader.load( url, function( group ){
+							console.log( group.animations );
+
+						//	Add animation.
+							group.animations[0].name = "jumpingUp";
+							var clip = group.animations[0];
+							var mixer = animationController.mixer;
+							var object = animationController.object;
+							animationController.motion.jumpingUp = mixer.clipAction( clip, object );
+							animationController.motion.jumpingUp.setDuration(0.6); // half++ jump duration in sec.
+							animationController.motion.jumpingUp.clampWhenFinished = true;
+							animationController.motion.jumpingUp.setLoop( THREE.LoopPingPong );
+
+						//	Add option.
+							var select = document.getElementById("animation-droplist");
+							select && select.appendChild( createOption( clip.name ) );
+
+						//	Bind events.
+							localPlayerController.addEventListener( "startJumping", function() { 
+								if ( !localPlayerController.isRunning ) {
+									animationController.play( "jumpingUp" ); 
+									animationController.motion.jumpingUp.reset(); // important!
+								} else {
+									animationController.play( "runningJump" );
+									animationController.motion.runningJump.reset(); // important!
+								}
+							});
+						});
+					})();
+
+				})();
+
+				scene.add( group );
+
+			//	Skeleton helper.
+
+				(function(){
+					var armature = group.getObjectByName("Armature");
+					skeletonHelper = new THREE.SkeletonHelper(armature);
+					scene.add( skeletonHelper );
+				})();
+
 			}, 
 
 			function onProgress( e ){

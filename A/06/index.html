@@ -49,7 +49,7 @@
 				margin:auto;"
 				position:absolute;
 			}
-			
+
 			#joystick1 {
 				right: calc(40px + 370px);
 			}
@@ -89,12 +89,14 @@
 		<script src="/manny/js/camera-controls.js"></script>
 		<script src="/manny/js/SubdivisionModifier.js"></script>
 		<script src="/manny/js/three-pathfinding.umd.js"></script>
-
 		<script src="/threejs/r96/examples/js/loaders/GLTFLoader.js"></script>
 		<script src="/threejs/r96/examples/js/exporters/GLTFExporter.js"></script>
+		<script src="/threejs/r96/examples/js/exporters/STLExporter.js"></script>
+		<script src="/threejs/r96/examples/js/exporters/OBJExporter.js"></script>
+		<script src="/threejs/r96/examples/js/exporters/ColladaExporter.js"></script>
 
 		<script>
-			
+
 			var debugMode = true; // important!
 			MW.install( THREE ); // important!
 		//	CameraControls.install( {THREE:THREE} ); // demo!
@@ -115,13 +117,14 @@
 				var loginTab = TabUI.add( "Login", "login-tab" );
 				var debugTab = TabUI.add( "Debug", "debug-tab" );
 				var levelTab = TabUI.add( "Levels", "level-tab" );
-				var avatarTab = TabUI.add( "Avatar", "avatar-tab" );
-				var cameraTab = TabUI.add( "Camera", "control-tab" );
+				var cameraTab = TabUI.add( "Camera", "camera-tab" );
 				var controlTab = TabUI.add( "Controls", "control-tab" );
+				var materialTab = TabUI.add( "Material", "material-tab" );
 				var animationTab = TabUI.add( "Animations", "animation-tab" );
+				var pathfinderTab = TabUI.add( "Pathfinder", "pathfinder-tab" );
 
 				document.body.appendChild( sidePanel );
-				TabUI.append("Controls", "Camera", "Avatar", "Animations", "Levels", "Login", "Debug" );
+				TabUI.append("Controls", "Camera", "Material", "Animations", "Levels", "Pathfinder", "Login", "Debug" );
 				TabUI.Levels.role.classList.add("active");
 				TabUI.Levels.tab.classList.add("in","active");
 
@@ -135,7 +138,7 @@
 
 			(function(){
 
-				var tab = TabUI.Avatar.tab;
+				var tab = TabUI.Material.tab;
 
 				var row = document.createElement("h3");
 				row.textContent = "Material";
@@ -158,7 +161,7 @@
 
 				var material;
 				var textures = {};
-				var tab = TabUI.Avatar.tab;
+				var tab = TabUI.Material.tab;
 				var Signal = signals.Signal;
 				var textureClicked = new Signal();
 
@@ -220,7 +223,10 @@
 						});
 					//
 						button.addEventListener( "click", function(){
-							var material = localPlayer.getObjectByName("MannyTheSkeleton_v51").material;
+							var select = document.getElementById("material-droplist");
+							var selected = scene.getObjectByProperty("uuid", select.value);
+							if ( !selected ) return;
+							var material = selected.material;
 							if ( !material ) return;
 							var uuid = button.getAttribute("uuid");
 							material.roughness = 0;
@@ -248,16 +254,20 @@
 
 			(function(){
 
-				var interval;
+				var interval, option;
 				var terrain, level, texture;
-
 				var material = new THREE.MeshBasicMaterial({
 					visible:false, wireframe:false, 
-				//	transparent:true, opacity:0.2,
 				});
 
+				function textureWatcher(prop, action, value){
+					debugMode && console.log(prop, action, value);
+					if ( !(level && level.material) ) return;
+					texture = level.material.envMap;
+				}
+
 				(function(){
-					var url = "https://i.imgur.com/aHeUCko.png";
+					var url = "https://i.imgur.com/yvwt1wj.png";
 					var loader = new THREE.ImageLoader();
 					loader.setCrossOrigin("anonymous"); // important!
 					loader.load( url, function( image ){
@@ -270,7 +280,7 @@
 
 				var container = document.createElement("div");
 				container.id = "terrain-buttons";
-				container.style.width = "300px";
+				container.style.cssText = "width:300px;height:600px;margin-bottom:10px;";
 
 				var terrains = [
 					"C1W","C2W","C3","C4","C5W","C7W","C8","C9W","C10W",
@@ -324,6 +334,7 @@
 
 									//  Terrain.
 										terrain = new THREE.Mesh(geometry, material);
+										terrain.name = "terrain "+button.id; // important!
 										terrain.position.set(0, 0, 0);
 										var s = 20; terrain.scale.set(s, s, s);
 										terrain.geometry.applyMatrix( terrain.matrix );
@@ -360,10 +371,24 @@
 												});
 
 												level = new THREE.Mesh( smoother, material );
+												level.name = "level "+button.id; // important!
 												level.scale.copy( mesh.scale ); // important!
 												level.position.copy( mesh.position ); // important!
 												level.material.envMap.needsUpdate = true; // important!
 												scene.add( level );
+
+											//	Update texture.
+												watch( level.material, "envMap", textureWatcher );
+
+											//	Create material option. 
+												setTimeout( function(){
+													var select = document.getElementById("material-droplist");
+													option = document.createElement("option");
+													option.text = level.name;
+													option.value = level.uuid;
+													select.appendChild( option );
+												});
+
 											});
 										});
 
@@ -465,25 +490,33 @@
 						scene.remove(level);
 						level.geometry.dispose();
 						level.material.dispose();
+						unwatch( level.material, "envMap", textureWatcher );
 					}
 
 					if (terrain) {
 						scene.remove(terrain);
 						terrain.geometry.dispose();
 						terrain.material.dispose();
-						cameraRigidObjectsRemove( terrain );
+						removeRigidObject( terrain );
 						octree.removeThreeMesh(terrain.geometry.uuid);
 					}
 
-					localPlayerController.isIdling = false; // important!
-				}
+					if ( option ) option.remove();
 
-				function cameraRigidObjectsRemove( mesh ){
-					var index = cameraControls.rigidObjects.findIndex( function( item ){
-						return item.uuid === mesh.uuid;
+					setTimeout(function(){
+						level = null;
+						option = null;
+						terrain = null;
 					});
-					if ( index < 0 ) return;
-					cameraControls.rigidObjects.splice( index, 1 );
+
+					function removeRigidObject( mesh ){
+						var rigidObjects = cameraControls.rigidObjects;
+						var index = rigidObjects.findIndex( function( item ){
+							return item.uuid === mesh.uuid;
+						}); if ( index < 0 ) return; // important!
+						cameraControls.rigidObjects.splice( index, 1 );
+					}
+
 				}
 
 			//	Remove terrain button.
@@ -493,14 +526,122 @@
 					var button = document.createElement("div");
 					button.classList.add("btn", "btn-white-outline", "btn-terrain");
 					button.style.cssText = "background-size:contain;background:none;";
-					button.addEventListener( "click", removeTerrain );
+					button.addEventListener( "click", function(){
+						removeTerrain();
+						localPlayerController.isIdling = false; // important!
+					});
 					return button;
 				}
 
 				container.appendChild( RemoveButton() );
 				tab.appendChild( container );
 
+
+			//	Export terrain OBJ button.
+
+				(function(){
+
+					var row = document.createElement("div");
+					row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
+					row.appendChild( exportOBJButton() );
+					tab.appendChild( row );
+
+					function exportOBJButton(){
+
+						var button = document.createElement("div");
+						button.id = "export-terrain-obj";
+						button.textContent = "Export Terrain as OBJ";
+						button.style.cssText = "width:220px;height:40px;font-size:large;";
+						button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+						button.addEventListener( "click", function(){
+							if ( !terrain ) return;
+							var name = terrain.name || "terrain";
+							var exporter = new THREE.OBJExporter();
+							saveString( exporter.parse( terrain ), name+".obj" );
+						});
+						return button;
+					}
+
+				})();
+
+			//	Export terrain STL button.
+
+				(function(){
+
+					var row = document.createElement("div");
+					row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
+					row.appendChild( exportSLTButton() );
+					tab.appendChild( row );
+
+					function exportSLTButton(){
+
+						var button = document.createElement("div");
+						button.id = "export-terrain-stl";
+						button.textContent = "Export Terrain as STL";
+						button.style.cssText = "width:220px;height:40px;font-size:large;";
+						button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+						button.addEventListener( "click", function(){
+							if ( !terrain ) return;
+							var name = terrain.name || "terrain";
+							var exporter = new THREE.STLExporter();
+							saveString( exporter.parse( terrain ), name+".stl" );
+						});
+						return button;
+					}
+
+				})();
+
+			//	Export level GLTF button.
+
+				(function(){
+
+					var row = document.createElement("div");
+					row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
+					row.appendChild( exportGFTLButton() );
+					tab.appendChild( row );
+
+					function exportGFTLButton(){
+
+						var button = document.createElement("div");
+						button.id = "export-level-gltf";
+						button.textContent = "Export Level as GLTF";
+						button.style.cssText = "width:220px;height:40px;font-size:large;";
+						button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+						button.addEventListener( "click", function(){
+							if ( !level ) return;
+							var name = level.name || "level";
+							var exporter = new THREE.GLTFExporter();
+							exporter.parse( level, function ( object ) {
+								saveString( JSON.stringify( object, null, 2 ), name+".gltf" );
+							});
+						});
+						return button;
+					}
+
+				})();
+
+				function saveString( text, filename ) {
+					save( new Blob( [ text ], { type: "text/plain" } ), filename );
+				}
+
+				function saveArrayBuffer( buffer, filename ) {
+					save( new Blob( [ buffer ], { type: "application/octet-stream" } ), filename );
+				}
+
+				function save( blob, filename ) {
+					var link = document.createElement( "a" );
+					link.download = filename;
+					link.href = URL.createObjectURL( blob );
+					link.addEventListener( "click", function(){
+						setTimeout( function(){
+							URL.revokeObjectURL( link.href );
+						});
+					});
+					link.click();
+				}
+
 			})();
+
 
 		</script>
 
@@ -1371,14 +1512,25 @@
 				//	Collect skinned meshes.
 					var meshes = group.children.filter( function( item ){
 						return item.type === "SkinnedMesh";
+					}); debugMode && console.log( meshes ); 
+
+				//	Create material option. 
+					var select = document.getElementById("material-droplist");
+					meshes.forEach( function( mesh ){
+						option = document.createElement("option");
+						option.text = mesh.name;
+						option.value = mesh.uuid;
+						select.appendChild( option );
 					});
-					debugMode && console.log( meshes ); 
-				//	TODO: Create mesh droplist to avatar tab.
-				//	TODO: Create material droplist to avatar tab. [v]
+
+				})();
+
+/*
+				//	TODO: Create mesh droplist to avatar tab. [ ]
+				//	TODO: Create material droplist to material tab. [v]
 
 				//	Material droplist.
 					var select = document.getElementById("material-droplist");
-					
 					meshes.forEach( function( mesh ){
 						if ( Array.isArray( mesh.material ) ) {
 							mesh.material.forEach( function( material ){
@@ -1399,8 +1551,7 @@
 						option.value = value;
 						return option;
 					}
-
-				})();
+*/
 
 			//	Add group to scene before animation controller.
 				localPlayer.add( group );
@@ -1700,9 +1851,24 @@
 
 		<script>
 
+		//	Pathfinder tab.
 		//	three-pathfinder.js
-/*
+
 			(function(){
+
+				var tab = TabUI.Pathfinder.tab;
+
+
+
+
+
+
+
+
+
+
+			})();
+/*
 
 				var speed = 50;
 				var radius = 10;
@@ -1780,7 +1946,6 @@
 
 				})();
 
-			})();
 */
 		</script>
 

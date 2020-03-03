@@ -178,7 +178,7 @@
 
 					select.appendChild(createOption("RightHand"));
 					select.appendChild(createOption("RightHandThumb1"));
-					select.appendChild(createOption("RightHandThumb2"));
+					select.appendChild(createOption("RightHandThumb2")); // default.
 					select.appendChild(createOption("RightHandThumb3"));
 					select.appendChild(createOption("RightHandIndex1"));
 					select.appendChild(createOption("RightHandIndex2"));
@@ -192,7 +192,7 @@
 
 					select.appendChild(createOption("LeftHand"));
 					select.appendChild(createOption("LeftHandThumb1"));
-					select.appendChild(createOption("LeftHandThumb2"));
+					select.appendChild(createOption("LeftHandThumb2")); // default.
 					select.appendChild(createOption("LeftHandThumb3"));
 					select.appendChild(createOption("LeftHandIndex1"));
 					select.appendChild(createOption("LeftHandIndex2"));
@@ -241,12 +241,13 @@
 			//	Load wepons.
 
 				(function(){
-					var url = "/manny/wepons/sword2.fbx";
+				//	Great Sword (RightHandThumb2).
+					var url = "/manny/wepons/greatsword_thumb2.fbx";
 					var loader = new THREE.FBXLoader();
 					loader.load( url, function( group ){
 						debugMode && console.log( "sword2.fbx:", group );
 						var mesh = group.children[0];
-						mesh.name = "sword"; 
+						mesh.name = "greatsword"; 
 						var s = 1; mesh.scale.set(s,s,s); // important!
 						wepons[ mesh.uuid ] = mesh;
 						var select = document.getElementById("wepon-droplist");

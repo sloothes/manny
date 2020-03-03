@@ -119,6 +119,7 @@
 				var loginTab = TabUI.add( "Login", "login-tab" );
 				var debugTab = TabUI.add( "Debug", "debug-tab" );
 				var levelTab = TabUI.add( "Levels", "level-tab" );
+				var weponTab = TabUI.add( "Wepon", "wepon-tab" );
 				var cameraTab = TabUI.add( "Camera", "camera-tab" );
 				var controlTab = TabUI.add( "Controls", "control-tab" );
 				var materialTab = TabUI.add( "Material", "material-tab" );
@@ -126,9 +127,55 @@
 				var pathfinderTab = TabUI.add( "Pathfinder", "pathfinder-tab" );
 
 				document.body.appendChild( sidePanel );
-				TabUI.append("Controls", "Camera", "Material", "Animations", "Levels", "Pathfinder", "Login", "Debug" );
-				TabUI.Debug.role.classList.add("active");
-				TabUI.Debug.tab.classList.add("in","active");
+				TabUI.append("Controls", "Camera", "Material", "Animations", "Levels", "Wepon", "Pathfinder", "Login", "Debug" );
+				TabUI.Wepon.role.classList.add("active");
+				TabUI.Wepon.tab.classList.add("in","active");
+
+			})();
+
+		</script>
+
+		<script>
+
+		//	Wepon tab.
+
+			(function(){
+
+				var tab = TabUI.Material.tab;
+
+				var row = document.createElement("h3");
+				row.textContent = "Wepon";
+
+				var Signal = signals.Signal;
+				weponChanged = new Signal();
+
+				var select = document.createElement("select");
+				select.id = "wepon-droplist";
+				select.style.cssText = "width:180px;color:#000;" // float:left;
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				row.appendChild( select );
+				tab.appendChild( row );
+
+			})();
+
+
+			(function(){
+				
+				var url = "/manny/wepons/sword1.fbx";
+				var loader = new THREE.FBXLoader();
+				loader.load( url, function( group ){
+					debugMode && console.log( "sword1:", group );
+
+
+
+
+
+
+					var select = document.getElementById("wepon-droplist");
+
+				});
 
 			})();
 

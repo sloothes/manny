@@ -127,7 +127,7 @@
 				var pathfinderTab = TabUI.add( "Pathfinder", "pathfinder-tab" );
 
 				document.body.appendChild( sidePanel );
-				TabUI.append("Controls", "Camera", "Material", "Animations", "Levels", "Wepon", "Pathfinder", "Login", "Debug" );
+				TabUI.append("Controls", "Camera", "Material", "Animations", "Wepon", "Levels", "Pathfinder", "Login", "Debug" );
 				TabUI.Wepon.role.classList.add("active");
 				TabUI.Wepon.tab.classList.add("in","active");
 
@@ -850,7 +850,7 @@
 					input.addEventListener( "change", function(){
 
 						for ( var i = 0; i < input.files.length; i++ ) {
-							(function( file ){
+							setTimeout(function( file ){
 
 								var filename = file.name.replace(".fbx", "");
 								var extension = file.name.split( "." ).pop().toLowerCase();
@@ -896,7 +896,7 @@
 								}, false );
 								reader.readAsArrayBuffer( file );
 
-							})( input.files[i] );
+							}, 0, input.files[i] );
 						}
 
 					});
@@ -1756,8 +1756,8 @@
 			var Signal = signals.Signal;
 			mannyLoaded = new Signal();
 
-			var url = "/manny/characters/MannyShordIdle02.fbx";
-			var url = "/manny/characters/MannyCatwalkIdle01.fbx";
+			var url = "/manny/characters/MannySwordIdle03.fbx";
+		//	var url = "/manny/characters/MannyCatwalkIdle01.fbx";
 
 			var loader = new THREE.FBXLoader();
 			loader.load( url, function( group ){

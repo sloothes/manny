@@ -1624,7 +1624,7 @@
 			var Signal = signals.Signal;
 			mannyLoaded = new Signal();
 
-			var url = "/manny/characters/MannyShordIdle01.fbx";
+			var url = "/manny/characters/MannyShordIdle02.fbx";
 			var loader = new THREE.FBXLoader();
 			loader.load( url, function( group ){
 
@@ -1637,28 +1637,34 @@
 				debugMode && console.log( group ); 
 
 			//	Replace materials.
-				group.children.forEach( function( child ){
+				group.traverse( function( child ){
+				//	if ( child.type !== "SkinnedMesh" ) return;
 
-					if ( child.type !== "SkinnedMesh" ) return;
+                    if (child.isMesh) {	
+                        child.castShadow = true;	
+                        child.receiveShadow = true;	
+                    }	
 
-					if ( Array.isArray(child.material) ) {
-						child.material = child.material.map( function( item ){
-							var name = item.name;
-							return new THREE.MeshStandardMaterial({
+					if (child.name == "MannyTheSkeleton_v51") {
+						if ( Array.isArray(child.material) ) {
+							child.material = child.material.map( function( item ){
+								var name = item.name;
+								return new THREE.MeshStandardMaterial({
+									name:name, skinning:true, // important!
+								});
+							});
+
+						} else {
+
+							var name = child.material.name;
+							child.material = new THREE.MeshStandardMaterial({
 								name:name, skinning:true, // important!
 							});
-						});
 
-					} else {
-
-						var name = child.material.name;
-						child.material = new THREE.MeshStandardMaterial({
-							name:name, skinning:true, // important!
-						});
-
+						}
+						debugMode && console.log( child.material ); 
 					}
 
-					debugMode && console.log( child.material ); 
 				});
 
 				(function(){
@@ -1694,7 +1700,7 @@
 
 			//	Add group to scene before animation controller.
 			//	localPlayer.add( group );
-				localPlayerHelper.visible = true;
+				localPlayerHelper.visible = false;
 				localPlayerController.direction += Math.PI; // important!
 
 			//	Update group rotation.
@@ -1923,6 +1929,7 @@
 				(function(){
 					var armature = group.getObjectByName("Armature");
 					skeletonHelper = new THREE.SkeletonHelper(armature);
+					skeletonHelper.visible = false;
 					scene.add( skeletonHelper );
 				})();
 

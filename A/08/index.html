@@ -1004,7 +1004,7 @@
 							player.position.set(
 								localPlayer.position.x + Math.floor( Math.sin( p * 2*Math.PI ) * r ), // random x,
 								radius, // player radius (y),
-								localPlayer.position.z + Math.floor( Math.cos( p * 2*Math.PI ) * r ), // random z,
+								localPlayer.position.z + Math.floor( Math.cos( p * 2*Math.PI ) * r )  // random z,
 							);
 
 						//	Player helper.
@@ -1777,7 +1777,7 @@
                     if (child.isMesh) {	
                         child.castShadow = true;	
                         child.receiveShadow = true;	
-                    }	
+                    }
 
 					if (child.name == "MannyTheSkeleton_v51") {
 						if ( Array.isArray(child.material) ) {

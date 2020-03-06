@@ -308,7 +308,7 @@
 
 			(function(){
 
-				var tab = TabUI.Players.tab;
+				var tab = TabUI.Animations.tab;
 				var row = document.createElement("h3");
 				row.textContent = "Player:";
 
@@ -343,7 +343,7 @@
 				var select = document.createElement("select");
 				select.animations = {}; // important!
 				select.id = "animation-droplist";
-				select.style.cssText = "width:180px;color:#000;" // float:left;
+				select.style.cssText = "width:180px;color:#000;float:right;"
 					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
 					+ "font-size:20px;margin-left:10px;";
 
@@ -358,7 +358,7 @@
 
 				var tab = TabUI.Animations.tab;
 				var row = document.createElement("div");
-				row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
+				row.style.cssText = "margin:20px 12px 10px;height:35px;text-align:center;";
 
 				var button1 = IdleButton();
 				var button2 = ImportAnimationButton();
@@ -510,7 +510,6 @@
 
 			//	Start battle.
 
-				var requestAnimationFrameID;
 				var tab = TabUI.Animations.tab;
 				var row = document.createElement("div");
 				row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
@@ -518,14 +517,15 @@
 				var button = document.createElement("div");
 				button.id = "start-raycasting";
 				button.textContent = "Start Battle";
-				button.style.cssText = "max-width:100%;;width:100%;height:40px;font-size:large;"; //float:left;
+				button.style.cssText = "max-width:100%;width:100%;height:40px;font-size:large;"; //float:left;
 				button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
 
 				button.addEventListener( "click", playersRaycastingDemo2 );
-
 				function playersRaycastingDemo2(){
 					
 					button.removeEventListener( "click", playersRaycastingDemo2 );
+
+					health1 = 100; health2 = 100;
 
 					player1.lookAt(player2.position); 
 					player2.lookAt(player1.position);
@@ -533,13 +533,29 @@
 				//	player1.
 
 					(function(){
+					//	Health bar player 1.
+						var bar = document.createElement("div");
+					//	bar.classList.add( "form-control" );
+						bar.style.cssText = "width:350px;height:40px;position:fixed;top:10px;left:10px;"
+						+ "border:2px solid #fff;border-radius:8px;background-color:#f00;";
+						var health_bar = document.createElement("div");
+						health_bar.id = "player1-health-bar";
+						health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;background-color:#ff0;float:left;";
+						bar.appendChild( health_bar );
+						document.body.appendChild( bar );
 
+					})();
+
+					(function(){
+
+						var requestAnimationFrameID;
 						sword1 = player1.getObjectByName("sword");
 
 						raycaster1 = new THREE.Raycaster();
 						var Spine = player2.getObjectByName("Spine2");
 						var RightHandIndex1 = player1.getObjectByName("RightHandIndex1");
 						var intersectObject = scene.getObjectByName("player2Spine2");
+
 					//	var intersectObjects = [
 					//		scene.getObjectByName("player2Spine"),
 					//		scene.getObjectByName("player2Spine2"),
@@ -563,10 +579,26 @@
 						arrow1.setDirection(raycaster1.ray.direction);
 						scene.add(arrow1);
 
-
-
 						(function update(){
 							requestAnimationFrameID = requestAnimationFrame( update );
+
+							if ( !( health1 > 0 && health2 > 0 ) ) {
+								cancelAnimationFrame( requestAnimationFrameID );
+
+								(function(){
+									var select = document.getElementById("players-droplist");
+									select.players.player1.animationController.play("idling");
+									select.players.player2.animationController.play("idling");
+									player1.lookAt(camera.position); 
+									player2.lookAt(camera.position);
+									return;
+								})();
+
+								return;
+							}
+
+							player1.lookAt(player2.position); 
+
 							direction.setFromMatrixPosition(Spine.matrixWorld);
 							raycaster1.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
 							raycaster1.ray.direction.subVectors( direction, raycaster1.ray.origin ).normalize(); // important! Must be normalize.
@@ -578,24 +610,123 @@
 							arrow1.position.copy(raycaster1.ray.origin);
 
 							intersects1 = raycaster1.intersectObject(intersectObject);
+
 							if ( !intersects1.length ) return;
-							debugMode && console.log( intersects1[0] );
+
+							health2 -= (raycaster1.far - intersects1[0].distance) / 100;
+							document.getElementById("player2-health-bar").style.width = health2+"%";
+						//	debugMode && console.log( raycaster1.far - intersects1[0].distance );
+						//	if ( health2 < 0 ) cancelAnimationFrame( requestAnimationFrameID );
+
 						})();
 
 					})();
 
-					//	player2.
+				/*
+					//	Ground Raycaster.
+						setTimeout(function(){
+							var raycaster = new THREE.Raycaster();
+							renderer.domElement.addEventListener("mousemove", function(e) {
+								camera.updateMatrixWorld();
+								raycaster.setFromCamera( mouse, camera );
+								var intersects = raycaster.intersectObject( ground );
+								if ( !intersects.length ) return;
+								player1.position.copy( intersects[0].point );
+							});
+						});
+					*/
 
+				//	player2.
 
+					(function(){
+					//	Health bar player 2.
+						var bar = document.createElement("div");
+					//	bar.classList.add( "form-control" );
+						bar.style.cssText = "width:350px;height:40px;position:fixed;top:10px;right:380px;"
+						+ "border:2px solid #fff;border-radius:8px;background-color:#f00;";
+						var health_bar = document.createElement("div");
+						health_bar.id = "player2-health-bar";
+						health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;background-color:#ff0;float:right;";
+						bar.appendChild( health_bar );
+						document.body.appendChild( bar );
 
+					})();
 
+					(function(){
 
+						var requestAnimationFrameID;
+						sword2 = player2.getObjectByName("sword");
 
+						raycaster2 = new THREE.Raycaster();
+						var Spine = player1.getObjectByName("Spine2");
+						var RightHandIndex1 = player2.getObjectByName("RightHandIndex1");
+						var intersectObject = scene.getObjectByName("player1Spine2");
 
+					//	var intersectObjects = [
+					//		scene.getObjectByName("player1Spine"),
+					//		scene.getObjectByName("player1Spine2"),
+					//		scene.getObjectByName("player1Head"),
+					//	];
 
+						var direction = new THREE.Vector3().setFromMatrixPosition(Spine.matrixWorld);
+						raycaster2.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
+						raycaster2.ray.direction.subVectors( direction, raycaster2.ray.origin ).normalize(); // important! Must be normalize.
+						raycaster2.far = 5; //	raycaster2.far = new THREE.Vector3().subVectors( direction, raycaster2.ray.origin ).length(); // comment this line to have an infinite ray
 
+					//	raycaster2 helper.
+						var material = new THREE.LineBasicMaterial({color:0xff0000});
+						var geometry = new THREE.Geometry();
+						geometry.vertices.push( raycaster2.ray.origin, direction );
+						line2 = new THREE.Line( geometry, material ); scene.add( line2 );
 
+					//	raycaster2 arrow.
+						arrow2 = new THREE.ArrowHelper( direction, raycaster2.ray.origin, 10, 0xffffff );
+						arrow2.setLength(raycaster2.far);
+						arrow2.setDirection(raycaster2.ray.direction);
+						scene.add(arrow2);
 
+						(function update(){
+							requestAnimationFrameID = requestAnimationFrame( update );
+
+							if ( !( health1 > 0 && health2 > 0 ) ) {
+								cancelAnimationFrame( requestAnimationFrameID );
+
+								(function(){
+									var select = document.getElementById("players-droplist");
+									select.players.player1.animationController.play("idling");
+									select.players.player2.animationController.play("idling");
+									player1.lookAt(camera.position); 
+									player2.lookAt(camera.position);
+									return;
+								})();
+
+								return;
+							}
+
+							player2.lookAt(player1.position);
+
+							direction.setFromMatrixPosition(Spine.matrixWorld);
+							raycaster2.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
+							raycaster2.ray.direction.subVectors( direction, raycaster2.ray.origin ).normalize(); // important! Must be normalize.
+						//	raycaster2.far = new THREE.Vector3().subVectors( direction, raycaster2.ray.origin ).length();
+							line2.geometry.verticesNeedUpdate = true; // important!
+
+							arrow2.setLength(raycaster2.far);
+							arrow2.setDirection(raycaster2.ray.direction);
+							arrow2.position.copy(raycaster2.ray.origin);
+
+							intersects2 = raycaster2.intersectObject(intersectObject);
+
+							if ( !intersects2.length ) return;
+
+							health1 -= (raycaster2.far - intersects2[0].distance) / 100;
+							document.getElementById("player1-health-bar").style.width = health1+"%";
+						//	debugMode && console.log( raycaster2.far - intersects2[0].distance );
+						//	if ( health1 < 0 ) cancelAnimationFrame( requestAnimationFrameID );
+
+						})();
+
+					})();
 
 				}
 
@@ -608,7 +739,7 @@
 
 		<script>
 
-			var k = 0;
+		//	var k = 0;
 			const playerRadius = 10; // player radius.
 
 		//	playerController.
@@ -854,6 +985,26 @@
 					});
 				});
 */
+				setTimeout(function(){
+
+					var vector = new THREE.Vector3();
+					var bone = player.getObjectByName("Spine2");
+					var helper = new THREE.Mesh(
+						new THREE.SphereGeometry( 5, 8, 6 ),
+						new THREE.MeshBasicMaterial( {color:0xffff00,  wireframe:true})
+					); 
+
+					helper.name = "player1Spine2";
+					scene.add( helper );
+
+					(function update(){
+						requestAnimationFrame( update );
+					//	scene.updateMatrixWorld(); // important!
+					//	vector.setFromMatrixPosition(bone.matrixWorld);
+						helper.position.setFromMatrixPosition(bone.matrixWorld);
+						helper.rotation.setFromRotationMatrix(bone.matrixWorld);
+					})();
+				});
 
 			}, 
 
@@ -1026,6 +1177,26 @@
 			//		var position = new THREE.Vector3().setFromMatrixPosition(child.matrixWorld);
 			//	3. Extract the world rotation of the child: 
 			//		var rotation = new THREE.Euler().setFromRotationMatrix(child.matrixWorld);
+
+				setTimeout(function(){
+					var vector = new THREE.Vector3();
+					var bone = player.getObjectByName("RightHandIndex1");
+					var helper = new THREE.Mesh(
+						new THREE.SphereGeometry( 1, 8, 6 ),
+						new THREE.MeshBasicMaterial( {color:0xffff00,  wireframe:true})
+					); 
+					
+					scene.add( helper );
+
+					(function update(){
+						requestAnimationFrame( update );
+					//	scene.updateMatrixWorld(); // important!
+					//	vector.setFromMatrixPosition(bone.matrixWorld);
+						helper.position.setFromMatrixPosition(bone.matrixWorld);
+						helper.rotation.setFromRotationMatrix(bone.matrixWorld);
+					})();
+				});
+
 /*
 				setTimeout(function(){
 

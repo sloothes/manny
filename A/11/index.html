@@ -103,6 +103,9 @@
 		//	THREE.Pathfinding = threePathfinding.Pathfinding;
 		//	THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
 
+		//	IMPORTANT NOTE: at "/manny/js/three.js" (r96),
+		//	we comment line 43269: "// if ( object.visible === false ) return;"
+
 			Number.prototype.format = function (){
 				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
 			};
@@ -522,31 +525,51 @@
 
 				button.addEventListener( "click", playersRaycastingDemo2 );
 				function playersRaycastingDemo2(){
-					
-					button.removeEventListener( "click", playersRaycastingDemo2 );
 
-					health1 = 100; health2 = 100;
+					document.getElementById("player1-bar") && document.getElementById("player1-bar").remove();
+					document.getElementById("player2-bar") && document.getElementById("player2-bar").remove();
+
+					button.removeEventListener( "click", playersRaycastingDemo2 );
 
 					player1.lookAt(player2.position); 
 					player2.lookAt(player1.position);
 
+					health1 = 10; health2 = 10;
+
 				//	player1.
 
-					(function(){
+					setTimeout(function(){
+
 					//	Health bar player 1.
 						var bar = document.createElement("div");
-					//	bar.classList.add( "form-control" );
+						bar.id = "player1-bar";
 						bar.style.cssText = "width:350px;height:40px;position:fixed;top:10px;left:10px;"
 						+ "border:2px solid #fff;border-radius:8px;background-color:#f00;";
+
 						var health_bar = document.createElement("div");
 						health_bar.id = "player1-health-bar";
-						health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;background-color:#ff0;float:left;";
+						health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;"
+						+ "background-color:#ff0;float:left;";
 						bar.appendChild( health_bar );
+
+						var text_bar = document.createElement("div");
+						text_bar.style.cssText = "width:100%;text-align:center;background:none;"
+						+ "position:absolute;font-weight:bold;color:#fff;font-size:x-large;";
+						bar.appendChild( text_bar );
+
 						document.body.appendChild( bar );
+						text_bar.textContent = health_bar.style.width;
 
-					})();
+						watch( window, "health1", function(prop, action, value){
+							health_bar.style.width = round( value, 1 ) + "%";
+							text_bar.textContent = health_bar.style.width;
+						});
 
-					(function(){
+					});
+
+					//
+
+					setTimeout(function(){
 
 						var requestAnimationFrameID;
 						sword1 = player1.getObjectByName("sword");
@@ -588,16 +611,17 @@
 								(function(){
 									var select = document.getElementById("players-droplist");
 									select.players.player1.animationController.play("idling");
-									select.players.player2.animationController.play("idling");
-									player1.lookAt(camera.position); 
-									player2.lookAt(camera.position);
+								//	select.players.player2.animationController.play("idling");
+									player1.rotation.set(0,0,0); // player2.rotation.set(0,0,0); 
+									scene.remove( line1, arrow1 ); // scene.remove( line2, arrow2 );
+								//	Only player 2 restores click handler, avoid multiple events.
 									return;
 								})();
 
 								return;
 							}
 
-							player1.lookAt(player2.position); 
+						//	player1.lookAt(player2.position); // DO NOT USED (unless you move a player).
 
 							direction.setFromMatrixPosition(Spine.matrixWorld);
 							raycaster1.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
@@ -614,13 +638,14 @@
 							if ( !intersects1.length ) return;
 
 							health2 -= (raycaster1.far - intersects1[0].distance) / 100;
-							document.getElementById("player2-health-bar").style.width = health2+"%";
+
+						//	document.getElementById("player2-health-bar").style.width = round(health2, 2)+"%";
 						//	debugMode && console.log( raycaster1.far - intersects1[0].distance );
 						//	if ( health2 < 0 ) cancelAnimationFrame( requestAnimationFrameID );
 
 						})();
 
-					})();
+					});
 
 				/*
 					//	Ground Raycaster.
@@ -638,21 +663,37 @@
 
 				//	player2.
 
-					(function(){
+					setTimeout(function(){
+
 					//	Health bar player 2.
 						var bar = document.createElement("div");
+						bar.id = "player2-bar";
 					//	bar.classList.add( "form-control" );
 						bar.style.cssText = "width:350px;height:40px;position:fixed;top:10px;right:380px;"
 						+ "border:2px solid #fff;border-radius:8px;background-color:#f00;";
+
 						var health_bar = document.createElement("div");
 						health_bar.id = "player2-health-bar";
-						health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;background-color:#ff0;float:right;";
+						health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;"
+						+ "background-color:#ff0;float:right;";
 						bar.appendChild( health_bar );
+
+						var text_bar = document.createElement("div");
+						text_bar.style.cssText = "width:100%;text-align:center;background:none;"
+						+ "position:absolute;font-weight:bold;color:#fff;font-size:x-large;";
+						bar.appendChild( text_bar );
+
 						document.body.appendChild( bar );
+						text_bar.textContent = health_bar.style.width;
 
-					})();
+						watch( window, "health2", function(prop, action, value){
+							health_bar.style.width = round( value, 1 ) + "%";
+							text_bar.textContent = health_bar.style.width;
+						});
 
-					(function(){
+					})
+
+					setTimeout(function(){
 
 						var requestAnimationFrameID;
 						sword2 = player2.getObjectByName("sword");
@@ -693,17 +734,19 @@
 
 								(function(){
 									var select = document.getElementById("players-droplist");
-									select.players.player1.animationController.play("idling");
+								//	select.players.player1.animationController.play("idling");
 									select.players.player2.animationController.play("idling");
-									player1.lookAt(camera.position); 
-									player2.lookAt(camera.position);
+									player2.rotation.set(0,0,0); // player1.rotation.set(0,0,0);
+									scene.remove( line2, arrow2 ); // scene.remove( line1, arrow1 ); 
+ 								//	Only this player restores click handler, avoid multiple events.
+									button.addEventListener( "click", playersRaycastingDemo2 ); // important!
 									return;
 								})();
 
 								return;
 							}
 
-							player2.lookAt(player1.position);
+						//	player2.lookAt(player1.position); // DO NOT USED (unless you move a player).
 
 							direction.setFromMatrixPosition(Spine.matrixWorld);
 							raycaster2.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
@@ -720,13 +763,27 @@
 							if ( !intersects2.length ) return;
 
 							health1 -= (raycaster2.far - intersects2[0].distance) / 100;
-							document.getElementById("player1-health-bar").style.width = health1+"%";
+
+						//	document.getElementById("player1-health-bar").style.width = round(health1, 2)+"%";
 						//	debugMode && console.log( raycaster2.far - intersects2[0].distance );
 						//	if ( health1 < 0 ) cancelAnimationFrame( requestAnimationFrameID );
 
 						})();
 
-					})();
+					});
+
+					function round(number, precision) {
+
+						var shift = function (number, precision, reverseShift) {
+							if (reverseShift) {
+								precision = -precision;
+							}  
+							numArray = ("" + number).split("e");
+							return +(numArray[0] + "e" + (numArray[1] ? (+numArray[1] + precision) : precision));
+						};
+						return shift(Math.round(shift(number, precision, false)), precision, true);
+
+					}
 
 				}
 
@@ -917,7 +974,7 @@
 					playerHelper.position.z = player.position.z;
 					playerHelper.name = player.name + "_helper";
 
-					scene.add( playerHelper );
+				//	scene.add( playerHelper ); // optional!
 
 				//	(delicated update using watchJS).
 					watch( player.position, ["x","y","z"], function(key, action, value){
@@ -934,7 +991,6 @@
 						requestAnimationFrame( update );
 						playerController.center.setFromMatrixPosition(bone.matrixWorld);
 					})();
-
 				});
 
 			//	HOW TO WATCH THE LIVE POSITION OF AN ANIMATED BONE.
@@ -956,7 +1012,7 @@
 						new THREE.MeshBasicMaterial( {color:0xffff00,  wireframe:true})
 					); 
 					
-					scene.add( helper );
+				//	scene.add( helper ); // optional!
 
 					(function update(){
 						requestAnimationFrame( update );
@@ -995,7 +1051,11 @@
 					); 
 
 					helper.name = "player1Spine2";
-					scene.add( helper );
+
+					scene.add( helper ); // not optional!
+				//	at "/manny/js/three.js" (r96) we comment line 43269: "if ( object.visible === false ) return;"
+					helper.visible = false;
+
 
 					(function update(){
 						requestAnimationFrame( update );
@@ -1158,7 +1218,7 @@
 					playerHelper.position.z = player.position.z;
 					playerHelper.name = player.name + "_helper";
 
-					scene.add( playerHelper );
+				//	scene.add( playerHelper ); // optional!
 
 				//	(delicated update using watchJS).
 					watch( player.position, ["x","y","z"], function(key, action, value){
@@ -1186,7 +1246,7 @@
 						new THREE.MeshBasicMaterial( {color:0xffff00,  wireframe:true})
 					); 
 					
-					scene.add( helper );
+				//	scene.add( helper ); // optional.
 
 					(function update(){
 						requestAnimationFrame( update );
@@ -1226,11 +1286,14 @@
 					var bone = player.getObjectByName("Spine2");
 					var helper = new THREE.Mesh(
 						new THREE.SphereGeometry( 5, 8, 6 ),
-						new THREE.MeshBasicMaterial( {color:0xffff00,  wireframe:true})
+						new THREE.MeshBasicMaterial( {color:0xffff00, wireframe:true})
 					); 
 
 					helper.name = "player2Spine2";
-					scene.add( helper );
+
+					scene.add( helper ); // not optional!
+				//	at "/manny/js/three.js" (r96) we comment line 43269: "if ( object.visible === false ) return;"
+					helper.visible = false;
 
 					(function update(){
 						requestAnimationFrame( update );

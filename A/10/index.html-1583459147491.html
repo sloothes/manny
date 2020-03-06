@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+
+		<title>manny (alpha 1.0)</title>
+
+		<meta charset="utf-8">
+		<meta name="generator" content="Three.js Editor">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+		<link rel="stylesheet" href="/css/joystick.css">
+		<link rel="stylesheet" href="/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/css/bootbox-dialoges.css">
+
+		<script src="/js/watch.js"></script>
+		<script src="/js/jquery.min.js"></script> 
+		<script src="/js/system.min.js"></script>
+		<script src="/js/signals.min.js"></script>
+		<script src="/js/inflate.min.js"></script>
+		<script src="/js/zangodb.min.js"></script>
+		<script src="/js/bootstrap.min.js"></script>
+		<script src="/js/hold-event.min.js"></script>
+
+		<style>
+
+			body {
+				font-family: sans-serif;
+				font-size: 13px;
+				background-color: #000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#loading-bar {
+				width:100%;
+				height:100%;
+				top:0; left:0;
+				position:fixed;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+			}
+
+			.middle > * {
+				top:0; 
+				left:0;
+				right:0;
+				bottom:0;
+				margin:auto;"
+				position:absolute;
+			}
+
+			#joystick1 {
+				right: calc(40px + 370px);
+			}
+			
+			#jumpButton {
+				right: calc(105px + 370px);
+			}
+
+			.btn-terrain {
+				padding:0;
+				float:left;
+				width:55px;
+				height:55px;
+				border:1px solid;
+				border-radius:4px;
+				margin-right:4px;
+				margin-bottom:4px;
+				display:inline-block;
+			}
+			
+			.btn-terrain + .btn-terrain {
+				margin-right:4px;
+			}
+
+		</style>
+	</head>
+
+	<body ontouchstart="">
+
+		<script src="/manny/js/three.js"></script>
+		<script src="/manny/js/TabUI.js"></script>
+		<script src="/manny/js/MeshWalk.js"></script>
+		<script src="/manny/js/UVsDebug.js"></script>
+		<script src="/manny/js/FBXLoader.js"></script>
+		<script src="/manny/js/VirtualInput.js"></script>
+		<script src="/manny/js/EditorControls.js"></script>
+		<script src="/manny/js/camera-controls.js"></script>
+		<script src="/manny/js/SubdivisionModifier.js"></script>
+		<script src="/manny/js/three-pathfinding.umd.js"></script>
+		<script src="/threejs/r96/examples/js/loaders/GLTFLoader.js"></script>
+		<script src="/threejs/r96/examples/js/exporters/GLTFExporter.js"></script>
+		<script src="/threejs/r96/examples/js/exporters/STLExporter.js"></script>
+		<script src="/threejs/r96/examples/js/exporters/OBJExporter.js"></script>
+		<script src="/threejs/r96/examples/js/exporters/ColladaExporter.js"></script>
+
+		<script>
+
+			var debugMode = true; // important!
+			MW.install( THREE ); // important!
+		//	CameraControls.install( {THREE:THREE} ); // demo!
+		//	THREE.Pathfinding = threePathfinding.Pathfinding;
+		//	THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
+
+			Number.prototype.format = function (){
+				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+			};
+
+		</script>
+
+		<script>
+
+			(function(){
+
+				const w = 370; // important!
+			//	dispatcher = new THREE.EventDispatcher(); // dispatcher.
+
+			//	Scene.
+				scene = new THREE.Scene();
+
+			//	Camera.
+				(function(){
+
+					var aspect = (window.innerWidth - w) / window.innerHeight;
+					camera = new THREE.PerspectiveCamera( 50, aspect, 1, 100000 );
+					camera.position.set(0, 20, 50);
+
+				})();
+
+			//	Editor Controls.
+				setTimeout(function(){
+					controls = new THREE.EditorControls(camera);
+					if ( controls && controls instanceof THREE.EditorControls ) {
+						camera.lookAt(controls.center); // important!
+					}
+				});
+
+			//  Camera Light.
+				(function(){
+
+					cameraLight = new THREE.DirectionalLight( 0xdfebff, 0.75 );
+					cameraLight.position.set( 0, 500, 300 );
+					cameraLight.castShadow = true;
+					cameraLight.shadow.mapSize.width  = Math.pow(2, 10); // 2048;
+					cameraLight.shadow.mapSize.height = Math.pow(2, 10); // 2048;
+
+					var d = 30;
+					cameraLight.shadow.camera.left = - d;
+					cameraLight.shadow.camera.right = d;
+					cameraLight.shadow.camera.top = d;
+					cameraLight.shadow.camera.bottom = - d;
+					cameraLight.shadow.camera.far = 10000;
+
+					shadowHelper = new THREE.CameraHelper(cameraLight.shadow.camera);
+					shadowHelper.visible = false;
+
+					scene.add( cameraLight, shadowHelper  );
+
+					(function update(){
+						requestAnimationFrame( update );
+						cameraLight.position.copy( camera.position );
+					})();
+
+				})();
+
+			//  Renderer.
+				(function(){
+
+					renderer = new THREE.WebGLRenderer({
+						antialias: true,
+						preserveDrawingBuffer: true,
+					});
+
+					renderer.gammaInput = true;
+					renderer.gammaOutput = true;
+					renderer.shadowMap.enabled = true;
+					renderer.setClearColor( 0x000000 );
+					renderer.setPixelRatio( window.devicePixelRatio );
+					renderer.setSize( (window.innerWidth - w), window.innerHeight );
+					document.body.appendChild( renderer.domElement );
+
+					window.addEventListener("resize", function onWindowResize() {
+						renderer.setSize( (window.innerWidth - w), window.innerHeight );
+					});
+
+					window.addEventListener("resize", function onWindowResize() {
+						camera.aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight;
+						camera.updateProjectionMatrix();
+					});
+
+					mouse = new THREE.Vector2();
+
+					renderer.domElement.addEventListener("mousemove", function(e) {
+						mouse.x = ( e.clientX / this.clientWidth ) * 2 - 1;
+						mouse.y = - ( e.clientY / this.clientHeight ) * 2 + 1;
+					});
+
+					(function render(){
+						requestAnimationFrame( render );
+						renderer.render( scene, camera );
+					})();
+
+				})();
+
+			})();
+
+		//	World - Octree.
+
+			(function(){
+
+				world = new MW.World();
+
+				var x = 1500, y = 1500, z = 1500;
+				var min = new THREE.Vector3( -x, -y, -z );
+				var max = new THREE.Vector3(  x,  y,  z );
+				var partition = 7; // nodes: Math.pow( 8, partition )
+
+				octree = new MW.Octree( min, max, partition );
+				world.add( octree );
+
+				var clock = new THREE.Clock();
+
+				(function update(){
+					requestAnimationFrame( update );
+					var delta = clock.getDelta();
+					var elapsed = clock.getElapsedTime();
+					world.step( Math.min( delta, 0.02 ) );
+					scene.updateMatrixWorld(); // important!
+				})();
+
+			})();
+
+			(function(){
+
+			//	ground.
+
+				var ground = new THREE.Mesh(
+					new THREE.PlaneGeometry( 3000, 3000, 1, 1 ).rotateX(-Math.PI/2),
+					new THREE.MeshLambertMaterial({ 
+						opacity:1, 
+						color:0x829ec4,
+					})
+				);
+
+			//	We need only the geometry of the ground
+			//	so there is not need to add to the scene.
+			//	ground.rotation.x = -Math.PI / 2; // THREE.Math.degToRad( -90 );
+				octree.importThreeMesh( ground ); // important!
+			//	scene.add( ground ); // optional!
+
+			//	Ground Helper.
+				groundHelper = new THREE.GridHelper( 3000, 300, 0x444444, 0x444444 );
+				scene.add( groundHelper );
+
+			//	Ground Raycaster.
+				setTimeout(function(){
+					var raycaster = new THREE.Raycaster();
+					var rayhelper = new THREE.Mesh(
+						new THREE.CircleBufferGeometry( 2, 32 ).rotateX(-Math.PI/2),
+						new THREE.MeshBasicMaterial( { color:0xffff00, wireframe:false} )
+					);
+					renderer.domElement.addEventListener("mousemove", function(e) {
+						camera.updateMatrixWorld();
+						raycaster.setFromCamera( mouse, camera );
+						var intersects = raycaster.intersectObject( ground );
+						if ( !intersects.length ) return;
+						rayhelper.position.copy( intersects[0].point );
+					});
+					scene.add( rayhelper );
+				});
+
+			})();
+
+
+		</script>
+
+		<script>
+
+		//	TabUI
+
+			(function(){
+
+				var sidePanel = createSidePanel();
+				var loginTab = TabUI.add( "Login", "login-tab" );
+				var debugTab = TabUI.add( "Debug", "debug-tab" );
+				var weponTab = TabUI.add( "Wepon", "wepon-tab" );
+				var levelTab = TabUI.add( "Levels", "level-tab" );
+				var cameraTab = TabUI.add( "Camera", "camera-tab" );
+				var playerTab = TabUI.add( "Players", "player-tab" );
+				var controlTab = TabUI.add( "Controls", "control-tab" );
+				var materialTab = TabUI.add( "Material", "material-tab" );
+				var animationTab = TabUI.add( "Animations", "animation-tab" );
+				var pathfinderTab = TabUI.add( "Pathfinder", "pathfinder-tab" );
+
+				document.body.appendChild( sidePanel );
+				TabUI.append("Controls", "Camera", "Material", "Players", "Animations", "Wepon", "Levels", "Pathfinder", "Login", "Debug" );
+				TabUI.Animations.role.classList.add("active");
+				TabUI.Animations.tab.classList.add("in","active");
+
+			})();
+
+		</script>
+
+		<script>
+
+		//	Players tab.
+
+			(function(){
+
+				var tab = TabUI.Players.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Player:";
+
+				var select = document.createElement("select");
+				select.players = {}; // important!
+				select.id = "players-droplist";
+				select.style.cssText = "width:180px;color:#000;float:right;" //
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+				
+				select.getAnimationController = function(){
+					return select.players[ select.value ].animationController;
+				};
+
+				row.appendChild( select );
+				tab.appendChild( row );
+
+			})();
+
+		</script>
+
+		<script>
+
+		//	Animation tab.
+
+			(function(){
+
+				var tab = TabUI.Animations.tab;
+				var row = document.createElement("h3");
+				row.textContent = "Animation:";
+
+				var select = document.createElement("select");
+				select.animations = {}; // important!
+				select.id = "animation-droplist";
+				select.style.cssText = "width:180px;color:#000;" // float:left;
+					+ "border:1px solid;border-radius:4px;padding:2px 4px 4px 4px;"
+					+ "font-size:20px;margin-left:10px;";
+
+				row.appendChild( select );
+				tab.appendChild( row );
+
+			})();
+
+			(function(){
+
+			//	Import Animation.
+
+				var tab = TabUI.Animations.tab;
+				var row = document.createElement("div");
+				row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
+
+				var button1 = IdleButton();
+				var button2 = ImportAnimationButton();
+
+				row.appendChild( button1 );
+				row.appendChild( button2 );
+				tab.appendChild( row );
+
+				function IdleButton(){
+
+					var button = document.createElement("div");
+					button.id = "idle-animation";
+					button.textContent = "Stop";
+					button.style.cssText = "max-width:120px;width:100px;float:left;height:40px;font-size:large;";
+					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+					button.addEventListener( "click", function(){
+						var select = document.getElementById("players-droplist");
+						var animationController = select.getAnimationController();
+						if ( animationController.currentMotionName == "idling" ) return;
+						animationController.play( "idling" ); 
+					});
+
+					return button;
+				}
+
+				function ImportAnimationButton() {
+
+					var button = document.createElement("div");
+					button.id = "import-animaton";
+					button.textContent = "Import animation";
+					button.style.cssText = "min-width:60%;width:180px;float:right;height:40px;font-size:large;";
+					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+
+					var input = document.createElement("input");
+					input.type = "file";
+					input.style.display = "none";
+					input.setAttribute("multiple", "");
+
+					var k = 0; // important!
+					input.addEventListener( "change", function(){
+					//
+						var select = document.getElementById("animation-droplist");
+						if ( !select ) { input.value = ""; return; }
+
+						for ( var i = 0; i < input.files.length; i++ ) {
+							setTimeout(function( file ){
+
+								var filename = file.name.replace(".fbx", "");
+								var extension = file.name.split( "." ).pop().toLowerCase();
+
+								var reader = new FileReader();
+
+								reader.addEventListener( "progress", function ( e ) {
+									var size = "(" + Math.floor( e.total / 1000 ).format() + " KB)";
+									var progress = Math.floor( ( e.loaded / e.total ) * 100 ) + "%";
+									console.log( "Loading", filename, size, progress );
+								});
+
+								reader.addEventListener( "load", function ( e ) {
+
+									var data = reader.result;
+									var loader = new THREE.FBXLoader();
+									var group = loader.parse( data );
+
+								//	Add animations.
+									console.log( group.animations );
+
+									if ( group.animations.length ) {
+										group.animations.forEach( function( clip ){
+											clip.name = filename;
+											var name = ++k+"."+filename;
+										//	Get animationController.
+										//	var animationController = document.getElementById("players-droplist").getAnimationController();
+										//	animationController.motion[ name ] = animationController.mixer.clipAction( clip, animationController.object );
+											for ( var key in document.getElementById("players-droplist").players ) {
+												if ( key ) (function( key ){
+													var players = document.getElementById("players-droplist").players;
+													var animationController = players[ key ].animationController;
+													var mixer = animationController.mixer;
+													var object = animationController.object;
+													animationController.motion[ name ] = mixer.clipAction( clip, object );
+												})( key );
+											}
+											select.appendChild( createOption( name ) );
+
+										});
+									}
+
+									function createOption(name){
+										var option = document.createElement("option");
+										option.text = option.value = name;
+										return option;
+									}
+
+								}, false );
+								reader.readAsArrayBuffer( file );
+
+							}, 0, input.files[i] );
+						}
+
+					});
+
+					button.addEventListener( "click", function(){
+						
+						input.value = "";
+						input.click();
+
+					});
+
+					button.appendChild( input );
+					return button;
+
+				}
+
+			})();
+
+
+			(function(){
+
+			//	Play Animation.
+
+				var tab = TabUI.Animations.tab;
+				var row = document.createElement("div");
+				row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
+				row.appendChild( PlayButton() );
+				tab.appendChild( row );
+
+				function PlayButton(){
+
+					var button = document.createElement("div");
+					button.id = "play-animation";
+					button.textContent = "Play animation";
+					button.style.cssText = "max-width:100%;;width:100%;height:40px;font-size:large;"; //float:left;
+					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+					button.addEventListener( "click", function(){
+						var animationController = document.getElementById("players-droplist").getAnimationController();
+						var select = document.getElementById("animation-droplist");
+						if ( !animationController.motion[ select.value ] ) return;
+						animationController.play( select.value );
+					});
+					
+					return button;
+				}
+
+			})();
+
+
+			(function(){
+
+			//	Start battle.
+
+				var requestAnimationFrameID;
+				var tab = TabUI.Animations.tab;
+				var row = document.createElement("div");
+				row.style.cssText = "margin:10px 12px;height:35px;text-align:center;";
+
+				var button = document.createElement("div");
+				button.id = "start-raycasting";
+				button.textContent = "Start Battle";
+				button.style.cssText = "max-width:100%;;width:100%;height:40px;font-size:large;"; //float:left;
+				button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+
+				button.addEventListener( "click", playersRaycastingDemo2 );
+
+				function playersRaycastingDemo2(){
+					
+					button.removeEventListener( "click", playersRaycastingDemo2 );
+
+					player1.lookAt(player2.position); 
+					player2.lookAt(player1.position);
+
+				//	player1.
+					(function(){
+						raycaster1 = new THREE.Raycaster();
+						var Hips = player2.getObjectByName("Hips");
+						var RightHandIndex1 = player1.getObjectByName("RightHandIndex1");
+						var intersectObject = scene.getObjectByName("player2_helper");
+						var direction = new THREE.Vector3().setFromMatrixPosition(Hips.matrixWorld);
+						raycaster1.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
+						raycaster1.ray.direction.subVectors( direction, raycaster1.ray.origin ).normalize(); // important! Must be normalize.
+						raycaster1.far = 1; //	raycaster1.far = new THREE.Vector3().subVectors( direction, raycaster1.ray.origin ).length(); // comment this line to have an infinite ray
+					//	raycaster1 helper.
+						var material = new THREE.LineBasicMaterial({color:0x00ff00});
+						var geometry = new THREE.Geometry();
+						geometry.vertices.push( raycaster1.ray.origin, raycaster1.ray.direction );
+						line1 = new THREE.Line( geometry, material ); scene.add( line1 );
+
+						(function update(){
+							requestAnimationFrameID = requestAnimationFrame( update );
+							direction.setFromMatrixPosition(Hips.matrixWorld);
+							raycaster1.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
+							raycaster1.ray.direction.subVectors( direction, raycaster1.ray.origin ).normalize(); // important! Must be normalize.
+						//	raycaster1.far = new THREE.Vector3().subVectors( direction, raycaster1.ray.origin ).length();
+							line1.geometry.verticesNeedUpdate = true; // important!
+							intersects1 = raycaster1.intersectObject(intersectObject);
+							if ( !intersects1.length ) return;
+							debugMode && console.log( intersects1[0] );
+						})();
+
+					})();
+
+					//	player2.
+
+
+
+
+
+
+
+
+
+
+
+
+				}
+
+				row.appendChild( button );
+				tab.appendChild( row );
+
+			})();
+
+		</script>
+
+		<script>
+
+			var k = 0;
+			const playerRadius = 10; // player radius.
+
+		//	playerController.
+
+			(function(){
+
+				var radius = 1; // player radius
+				var localPlayer = new THREE.Object3D();
+				playerController = new MW.CharacterController( localPlayer, radius );
+				world.add( playerController ); // important!
+				debugMode && console.log( "playerController:", playerController );
+
+			//	Player controller helper.
+				var helper = new THREE.Mesh(
+					new THREE.SphereGeometry( 1, 8, 6 ),
+					new THREE.MeshBasicMaterial( { color: 0x00ffff,  wireframe: true} )
+				);
+				watch( playerController.center, ["x","y","z"], function(key, action, value){
+					helper.position[ key ] = value;
+				});
+				scene.add(helper);
+
+			})();
+
+		</script>
+
+		<script>
+
+		//	Player 1.
+
+			var loader = new THREE.FBXLoader();
+			loader.load( "/manny/characters/MannySwordIdle03.fbx", function( player ){
+
+				//	++k; 
+				var armature; 		// THREE.Group.
+				var bones = {}; 	// create bone options. TODO!
+				var meshes = {};	// create mesh options. TODO!
+				var wepons = {};	// create wepon options. TODO!
+				var skinned = {};	// create skinned options. TODO!
+				var animations = player.animations;
+
+				player1 = player; // debug!
+
+			//	player is a THREE.Group.
+				player.name = "player1";
+			//	player.position.y = -playerRadius; // important!
+				var s = 0.00033; player.scale.set(s,s,s); // important!
+				player.position.x = -10;
+
+				debugMode && console.log( player ); 
+/*
+			//	Random position.
+				(function(){
+					var r = 10, p = Math.random();
+					player.position.x = Math.floor( Math.sin( p * 2*Math.PI ) * r ); // random x,
+					player.position.z = Math.floor( Math.cos( p * 2*Math.PI ) * r ); // random z,
+				})();
+*/
+				scene.add( player );
+
+				player.traverse( function( child ){
+
+					if (child.name == "Armature") { 
+						armature = child; 
+					}
+
+                    if (child.isMesh) {	
+                        child.castShadow = true;	
+                        child.receiveShadow = true;	
+						meshes[ child.name ] = child;
+                    }
+
+					if ( child.isBone ) {
+						bones[ child.name ] = child;
+					}
+					
+					if ( child.isSkinnedMesh ) {
+						skinned[ child.uuid ] = child;
+					}
+
+					if (child.name == "sword") {
+						sword1 = child; // debug!
+						wepons[ child.name ] = child;
+					}
+
+					if (child.name == "MannyTheSkeleton_v51") {
+
+						(function(mesh){
+/*
+						//	Replace multimaterial material.
+							if ( Array.isArray(child.material) ) {
+								mesh.material = mesh.material.map( function( item ){
+									var name = item.name;
+									return new THREE.MeshStandardMaterial({
+										name:name, skinning:true, // important!
+									});
+								});
+							} else {...}
+*/
+						//	Replace material.
+							var name = mesh.material.name;
+							mesh.material = new THREE.MeshStandardMaterial({
+								name:name, skinning:true, // important!
+							});
+
+							var loader = new THREE.ImageLoader();
+							loader.setCrossOrigin("anonymous"); // important!
+							var src = "https://i.imgur.com/Fx9154f.png";
+							loader.load( src, function( image ){
+								var mapping = THREE.SphericalReflectionMapping;		// important!
+								var texture = new THREE.Texture( image, mapping );	// important!
+								mesh.material.roughness = 0; 
+								mesh.material.metalness = 1; 
+								mesh.material.envMap = texture; 
+								mesh.material.envMap.needsUpdate = true; 
+								mesh.material.needsUpdate = true;
+							});
+
+							debugMode && console.log( mesh.material ); 
+
+						})( child );
+					}
+
+				});
+				
+				debugMode && console.log({
+					"armature":armature,"bones":bones,"meshes":meshes,
+					"wepons":wepons,"skinned":skinned,"animations":animations
+				});
+
+			//	Animation controller.
+
+				if ( animations && animations.length ) {
+
+					player.animations[0].name = "idling";
+				//	Our characters awlays contains only an idle animation.
+					var animationController = new MW.AnimationController( player );
+
+				//	Players droplist.
+					(function(){
+						var select = document.getElementById("players-droplist");
+						select.players[ player.name ] = {
+							name: player.name,
+							uuid: THREE.Math.generateUUID(),
+							animationController: animationController,
+						};
+						var option = document.createElement("option");
+						option.text = option.value = player.name;
+						select.appendChild( option );
+					})();
+
+				//	Animation controller update.
+					var clock = new THREE.Clock();
+
+					(function update(){
+						requestAnimationFrame( update );
+						var delta = clock.getDelta();
+						animationController.update( delta );
+					})();
+
+					animationController.play("idling");
+				}
+
+			//	Player helper.
+
+				setTimeout(function(){
+					const radius = playerRadius;
+					var playerHelper = new THREE.Mesh(
+						new THREE.SphereGeometry( radius, 8, 6 ),
+						new THREE.MeshBasicMaterial( { color: 0x00ff00,  wireframe: true} )
+					);
+
+					playerHelper.position.y = radius;
+					playerHelper.position.x = player.position.x;
+					playerHelper.position.z = player.position.z;
+					playerHelper.name = player.name + "_helper";
+
+					scene.add( playerHelper );
+
+				//	(delicated update using watchJS).
+					watch( player.position, ["x","y","z"], function(key, action, value){
+						if ( key == "y" ) value += radius;
+						playerHelper.position[ key ] = value;
+					//	debugMode && console.log(key, action, value);
+					});
+
+				});
+
+				setTimeout(function(){
+					var bone = player.getObjectByName("Hips");
+					(function update(){
+						requestAnimationFrame( update );
+						playerController.center.setFromMatrixPosition(bone.matrixWorld);
+					})();
+
+				});
+
+			//	HOW TO WATCH THE LIVE POSITION OF AN ANIMATED BONE.
+			//	"https://stackoverflow.com/questions/15098479/how-to-get-the-global-world-position-of-a-child-object".
+			//	1. Update parent (or scene) matrix world: 
+			//		scene.updateMatrixWorld(); // important!
+			//	2. Extract the world position of the child: 
+			//		var position = new THREE.Vector3().setFromMatrixPosition(child.matrixWorld);
+			//	3. Extract the world rotation of the child: 
+			//		var rotation = new THREE.Euler().setFromRotationMatrix(child.matrixWorld);
+			//	4. or extract the world quaternion of the child:
+			//		var quaternion = new THREE.Vector4().setAxisAngleFromRotationMatrix(child.matrixWorld);
+
+				setTimeout(function(){
+					var vector = new THREE.Vector3();
+					var bone = player.getObjectByName("RightHandIndex1");
+					var helper = new THREE.Mesh(
+						new THREE.SphereGeometry( 1, 8, 6 ),
+						new THREE.MeshBasicMaterial( {color:0xffff00,  wireframe:true})
+					); scene.add( helper );
+
+					(function update(){
+						requestAnimationFrame( update );
+					//	scene.updateMatrixWorld(); // important!
+					//	vector.setFromMatrixPosition(bone.matrixWorld);
+						helper.position.setFromMatrixPosition(bone.matrixWorld);
+						helper.rotation.setFromRotationMatrix(bone.matrixWorld);
+					})();
+				});
+/*
+				setTimeout(function(){
+				//	Demo!
+					loader = new THREE.FBXLoader();
+					loader.load( "/manny/wepons/greatsword_thumb2.fbx", function( group ){
+						debugMode && console.log( group );
+						sword = group.children[0]; 
+						var s = 0.04; sword.scale.set(s,s,s);
+						var bone = player.getObjectByName("LeftHandIndex1");
+					//	XYZ, XZY, YXZ, YZX, ZXY, ZYX.
+						(function update(){
+							requestAnimationFrame( update );
+							sword.position.setFromMatrixPosition(bone.matrixWorld);
+						//	sword.rotation.setFromRotationMatrix(bone.matrixWorld);
+						})();
+						scene.add( sword );
+					});
+				});
+*/
+
+			}, 
+
+			function(e){}, 
+			function(err){
+				console.error(err);
+			});
+
+		</script>
+
+		<script>
+
+/*
+			(function(){
+				//	Create material option. 
+				var select = document.getElementById("material-droplist");
+				for ( var name in meshes ) {
+					(function( mesh ){
+						option = document.createElement("option");
+						option.text = mesh.name;
+						option.value = mesh.uuid;
+						select.appendChild( option );
+					})( meshes[ name ] );
+				}
+			})();
+*/
+/*
+			(function(){
+
+			//	New player 1.
+				var player = new THREE.Object3D();
+				player.name = "player_"+(++k);
+
+			//	Random position.
+				var r = 25, random = Math.random();
+				player.position.set(
+					Math.floor( Math.sin( random * 2*Math.PI ) * r ), // x
+					playerRadius, // player radius y,
+					Math.floor( Math.cos( random * 2*Math.PI ) * r )  // z
+				);
+
+			//	Player helper.
+				var playerHelper = new THREE.Mesh(
+					new THREE.SphereGeometry( playerRadius, 8, 6 ),
+					new THREE.MeshBasicMaterial( { color: 0xff0000,  wireframe: true} )
+				);
+
+				playerHelper.name = "helper_"+player.name;
+				player.add( playerHelper );
+				scene.add( player);
+
+			})();
+*/
+
+		</script>
+
+		<script>
+
+		//	Player 2.
+
+			var loader = new THREE.FBXLoader();
+			loader.load( "/manny/characters/MannySwordIdle04.fbx", function( player ){
+
+				//	++k; 
+				var armature; 		// THREE.Group.
+				var bones = {}; 	// create bone options. TODO!
+				var meshes = {};	// create mesh options. TODO!
+				var wepons = {};	// create wepon options. TODO!
+				var skinned = {};	// create skinned options. TODO!
+				var animations = player.animations;
+
+				player2 = player; // debug!
+
+			//	player is a THREE.Group.
+				player.name = "player2";
+			//	player.position.y = -playerRadius; // important!
+				var s = 0.00033; player.scale.set(s,s,s); // important!
+				player.position.x = 10;
+
+				debugMode && console.log( player ); 
+/*
+			//	Random position.
+				(function(){
+					var r = 25, p = Math.random();
+					player.position.x = Math.floor( Math.sin( p * 2*Math.PI ) * r ); // random x,
+					player.position.z = Math.floor( Math.cos( p * 2*Math.PI ) * r ); // random z,
+				})();
+*/
+				scene.add( player );
+
+				player.traverse( function( child ){
+
+					if (child.name == "Armature") { 
+						armature = child; 
+					}
+
+                    if (child.isMesh) {	
+                        child.castShadow = true;	
+                        child.receiveShadow = true;	
+						meshes[ child.name ] = child;
+                    }
+
+					if ( child.isBone ) {
+						bones[ child.name ] = child;
+					}
+					
+					if ( child.isSkinnedMesh ) {
+						skinned[ child.uuid ] = child;
+					}
+
+					if (child.name == "sword") {
+						sword2 = child; // debug!
+						wepons[ child.name ] = child;
+
+					}
+
+					if (child.name == "MannyTheSkeleton_v51") {
+
+						(function(mesh){
+						//	Replace material.
+							var name = mesh.material.name;
+							mesh.material = new THREE.MeshStandardMaterial({
+								name:name, skinning:true, // important!
+							});
+
+							var loader = new THREE.ImageLoader();
+							loader.setCrossOrigin("anonymous"); // important!
+							var src = "https://i.imgur.com/Fx9154f.png";
+							loader.load( src, function( image ){
+								var mapping = THREE.SphericalReflectionMapping;		// important!
+								var texture = new THREE.Texture( image, mapping );	// important!
+								mesh.material.roughness = 0; 
+								mesh.material.metalness = 1; 
+								mesh.material.envMap = texture; 
+								mesh.material.envMap.needsUpdate = true; 
+								mesh.material.needsUpdate = true;
+							});
+
+							debugMode && console.log( mesh.material ); 
+
+						})( child );
+					}
+
+				});
+				
+				debugMode && console.log({
+					"armature":armature,"bones":bones,"meshes":meshes,
+					"wepons":wepons,"skinned":skinned,"animations":animations
+				});
+
+			//	Animation controller.
+
+				if ( animations && animations.length ) {
+
+					player.animations[0].name = "idling";
+				//	Our characters awlays contains only an idle animation.
+					var animationController = new MW.AnimationController( player );
+
+				//	Players droplist.
+					(function(){
+						var select = document.getElementById("players-droplist");
+						select.players[ player.name ] = {
+							name: player.name,
+							uuid: THREE.Math.generateUUID(),
+							animationController: animationController,
+						};
+						var option = document.createElement("option");
+						option.text = option.value = player.name;
+						select.appendChild( option );
+					})();
+
+				//	Animation controller update.
+					var clock = new THREE.Clock();
+
+					(function update(){
+						requestAnimationFrame( update );
+						var delta = clock.getDelta();
+						animationController.update( delta );
+					})();
+
+
+					animationController.play("idling");
+				}
+
+
+			//	Player helper.
+
+				setTimeout(function(){
+					const radius = playerRadius;
+					var playerHelper = new THREE.Mesh(
+						new THREE.SphereGeometry( radius, 8, 6 ),
+						new THREE.MeshBasicMaterial( { color: 0xff0000,  wireframe: true} )
+					);
+
+					playerHelper.position.y = radius;
+					playerHelper.position.x = player.position.x;
+					playerHelper.position.z = player.position.z;
+					playerHelper.name = player.name + "_helper";
+
+					scene.add( playerHelper );
+
+				//	(delicated update using watchJS).
+					watch( player.position, ["x","y","z"], function(key, action, value){
+						if ( key == "y" ) value += radius;
+						playerHelper.position[ key ] = value;
+					//	debugMode && console.log(key, action, value);
+					});
+
+				});
+
+			//	HOW TO WATCH THE LIVE POSITION OF AN ANIMATED BONE.
+			//	"https://stackoverflow.com/questions/15098479/how-to-get-the-global-world-position-of-a-child-object".
+			//	1. Update parent (or scene) matrix world: 
+			//		scene.updateMatrixWorld(); // important!
+			//	2. Extract the world position of the child: 
+			//		var position = new THREE.Vector3().setFromMatrixPosition(child.matrixWorld);
+			//	3. Extract the world rotation of the child: 
+			//		var rotation = new THREE.Euler().setFromRotationMatrix(child.matrixWorld);
+
+				setTimeout(function(){
+
+					var vector = new THREE.Vector3();
+					var bone = player.getObjectByName("Hips");
+					var armature = player.getObjectByName("Armature");
+					var helper = new THREE.Mesh(
+						new THREE.SphereGeometry( 1, 8, 6 ),
+						new THREE.MeshBasicMaterial( {color:0xffff00,  wireframe:true})
+					); scene.add( helper );
+
+					(function update(){
+						requestAnimationFrame( update );
+					//	armature.updateMatrixWorld(); // important!
+					//	vector.setFromMatrixPosition(bone.matrixWorld);
+						helper.position.setFromMatrixPosition(bone.matrixWorld);
+						helper.rotation.setFromRotationMatrix(bone.matrixWorld);
+					})();
+				});
+
+			}, 
+
+			function(e){}, 
+			function(err){
+				console.error(err);
+			});
+
+		</script>
+
+		<script>
+
+		//	Raycasting demo.
+
+			function playersRaycastingDemo1(){
+
+				player1.lookAt(player2.position); 
+				player2.lookAt(player1.position);
+
+			//	player1 raycaster.
+				raycaster1 = new THREE.Raycaster();
+				var Hips = player2.getObjectByName("Hips");
+				var RightHandIndex1 = player1.getObjectByName("RightHandIndex1");
+				var intersectObject = scene.getObjectByName("player2_helper");
+				var direction = new THREE.Vector3().setFromMatrixPosition(Hips.matrixWorld);
+				raycaster1.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
+				raycaster1.ray.direction.subVectors( direction, raycaster1.ray.origin ).normalize(); // important!
+				raycaster1.far = 5; //	raycaster1.far = new THREE.Vector3().subVectors( direction, raycaster1.ray.origin ).length(); // comment this line to have an infinite ray
+			//	raycaster1 helper.
+				var material = new THREE.LineBasicMaterial({color:0x00ff00});
+				var geometry = new THREE.Geometry();
+				geometry.vertices.push( raycaster1.ray.origin, raycaster1.ray.direction );
+				line1 = new THREE.Line( geometry, material ); scene.add( line1 );
+
+				(function update(){
+					requestAnimationFrame( update );
+					direction.setFromMatrixPosition(Hips.matrixWorld);
+					raycaster1.ray.origin.setFromMatrixPosition(RightHandIndex1.matrixWorld);
+					raycaster1.ray.direction.subVectors( direction, raycaster1.ray.origin ).normalize(); // important!
+				//	raycaster1.far = new THREE.Vector3().subVectors( direction, raycaster1.ray.origin ).length();
+					line1.geometry.verticesNeedUpdate = true; // important!
+					intersects1 = raycaster1.intersectObject(intersectObject);
+				//	if ( !intersects1.length ) return;
+					console.log( intersects1[0] );
+				})();
+
+			}
+
+
+			function raycastingHelperDemo(){
+			//	Demo!
+
+				player1.lookAt(player2.position); 
+				player2.lookAt(player1.position);
+
+			//	Player 1.
+				(function(){
+					var geometry = new THREE.Geometry();
+					var material = new THREE.LineBasicMaterial({color:0x00ff00});
+					var v1 = new THREE.Vector3().setFromMatrixPosition(player1.getObjectByName("RightHandIndex1").matrixWorld);
+					var v2 = new THREE.Vector3().setFromMatrixPosition(player2.getObjectByName("Head").matrixWorld);
+					geometry.vertices.push( v1, v2 );
+					line1 = new THREE.Line( geometry, material );
+
+					(function update(){
+						requestAnimationFrame( update );
+						line1.geometry.vertices[1].setFromMatrixPosition(player2.getObjectByName("Head").matrixWorld);
+						line1.geometry.vertices[0].setFromMatrixPosition(player1.getObjectByName("RightHandIndex1").matrixWorld);
+						line1.geometry.verticesNeedUpdate = true; // important!
+					})();
+					scene.add( line1 );
+				})();
+
+				(function(){
+					var geometry = new THREE.Geometry();
+					var material = new THREE.LineBasicMaterial({color:0xff0000});
+					var v1 = new THREE.Vector3().setFromMatrixPosition(player1.getObjectByName("RightHandIndex1").matrixWorld);
+					var v2 = new THREE.Vector3().setFromMatrixPosition(player2.getObjectByName("Head").matrixWorld);
+					geometry.vertices.push( v1, v2 );
+					line2 = new THREE.Line( geometry, material );
+
+					(function update(){
+						requestAnimationFrame( update );
+						line2.geometry.vertices[1].setFromMatrixPosition(player1.getObjectByName("Head").matrixWorld);
+						line2.geometry.vertices[0].setFromMatrixPosition(player2.getObjectByName("RightHandIndex1").matrixWorld);
+						line2.geometry.verticesNeedUpdate = true; // important!
+					})();
+					scene.add( line2 );
+
+				})();
+
+			}
+
+		</script>
+
+	</body>
+</html>

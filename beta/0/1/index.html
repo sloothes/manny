@@ -494,6 +494,7 @@
 					var button = document.createElement("div");
 					button.id = "idle-animation";
 					button.textContent = "Pause";
+					button.title = "Pause animation action";
 					button.style.cssText = "width:33%;float:left;height:40px;font-size:large;";
 					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
 					button.addEventListener( "click", function(){
@@ -511,6 +512,8 @@
 					var button = document.createElement("div");
 					button.id = "play-animation";
 					button.textContent = "Play animation";
+					button.title = "Test animation action";
+
 					button.style.cssText = "width:65%;float:right;height:40px;font-size:large;";
 					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
 					button.addEventListener( "click", function(){
@@ -532,15 +535,17 @@
 				var tab = TabUI.Animations.tab;
 				var row = document.createElement("div");
 				row.style.cssText = "margin:20px 12px 10px;height:35px;text-align:center;";
+				row.appendChild( RemoveActionButton() );
 				row.appendChild( AddActionButton() );
 				tab.appendChild( row );
 
-				function AddActionButton() {
+				function AddActionButton(){
 
 					var button = document.createElement("div");
 					button.id = "add-action";
 					button.textContent = "Add Action";
-					button.style.cssText = "width:100%;height:40px;font-size:large;";
+					button.title = "Add action button";
+					button.style.cssText = "width:49%;height:40px;float:right;font-size:large;";
 					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
 					button.addEventListener( "click", function(){
 
@@ -558,6 +563,22 @@
 						}
 
 						document.getElementById("action-buttons").appendChild( actionButton );
+					});
+
+					return button;
+				}
+
+				function RemoveActionButton(){
+
+					var button = document.createElement("div");
+					button.id = "remove-action";
+					button.textContent = "Remove";
+					button.title = "Remove action button";
+					button.style.cssText = "width:49%;height:40px;float:left;font-size:large;";
+					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+					button.addEventListener( "click", function(){
+						if ( !document.getElementById(currentAnimation) ) return;
+						document.getElementById(currentAnimation).remove();
 					});
 
 					return button;
@@ -606,7 +627,7 @@
 								reader.addEventListener( "progress", function ( e ) {
 									var size = "(" + Math.floor( e.total / 1000 ).format() + " KB)";
 									var progress = Math.floor( ( e.loaded / e.total ) * 100 ) + "%";
-									console.log( "Loading", filename, size, progress );
+								//	console.log( "Loading", filename, size, progress );
 								});
 
 								reader.addEventListener( "load", function ( e ) {
@@ -616,7 +637,7 @@
 									var group = loader.parse( data );
 
 								//	Add animations.
-									debugMode && console.log( group.animations );
+								//	debugMode && console.log( group.animations );
 
 									if ( group.animations && group.animations.length ) {
 
@@ -652,6 +673,7 @@
 
 			})();
 
+
 			setTimeout(function(){
 
 			//	Action buttons container.
@@ -665,13 +687,117 @@
 
 			});
 
+			setTimeout(function(){
+
+			//	Start Battle.
+
+				var tab = TabUI.Animations.tab;
+				var row = document.createElement("div");
+				row.style.cssText = "margin:20px 12px 10px;height:35px;text-align:center;";
+
+				var button = document.createElement("div");
+				button.id = "start-raycasting";
+				button.textContent = "Start Battle";
+				button.style.cssText = "max-width:100%;width:100%;height:40px;font-size:large;";
+				button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
+
+				button.addEventListener( "click", startRaycasting );
+				function startRaycasting(){
+
+					document.getElementById("player1-bar") && document.getElementById("player1-bar").remove();
+					document.getElementById("player2-bar") && document.getElementById("player2-bar").remove();
+
+					button.removeEventListener( "click", startRaycasting );
+
+					player1.lookAt(player2.position); // TODO: get player1 from players droplist (via uuid).
+					player2.lookAt(player1.position); // TODO: get player2 from players droplist (via uuid).
+					
+					P1 = {health:0}; P2 = {health:0};
+					P1.health = 100; P2.health = 100;
+
+					setTimeout(function(){
+
+					//	Health bar (player 1).
+
+						var bar = document.createElement("div");
+						bar.id = "player1-bar";
+						bar.title = "Player1 Health Bar";
+						bar.style.cssText = "width:350px;height:40px;position:fixed;top:10px;left:10px;"
+						+ "border:2px solid #fff;border-radius:8px;background-color:#f00;";
+
+						var health_bar = document.createElement("div");
+						health_bar.id = "player1-health-bar";
+						health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;"
+						+ "background-color:#ff0;float:left;";
+						bar.appendChild( health_bar );
+
+						var text_bar = document.createElement("div");
+						text_bar.style.cssText = "width:100%;text-align:center;background:none;"
+						+ "position:absolute;font-weight:bold;color:#fff;font-size:x-large;";
+						bar.appendChild( text_bar );
+
+						document.body.appendChild( bar );
+						text_bar.textContent = health_bar.style.width;
+
+						P1.healthWacher = function(prop, action, value){
+							health_bar.style.width = round( value, 1 ) + "%";
+							text_bar.textContent = health_bar.style.width;
+						};
+
+						watch( P1, "health", P1.healthWacher );
+
+					});
+
+					setTimeout(function(){
+
+					//	Health bar (player 2).
+
+						var bar = document.createElement("div");
+						bar.id = "player2-bar";
+						bar.title = "Player2 Health Bar";
+						bar.style.cssText = "width:350px;height:40px;position:fixed;top:10px;right:380px;"
+						+ "border:2px solid #fff;border-radius:8px;background-color:#f00;";
+
+						var health_bar = document.createElement("div");
+						health_bar.id = "player2-health-bar";
+						health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;"
+						+ "background-color:#ff0;float:right;";
+						bar.appendChild( health_bar );
+
+						var text_bar = document.createElement("div");
+						text_bar.style.cssText = "width:100%;text-align:center;background:none;"
+						+ "position:absolute;font-weight:bold;color:#fff;font-size:x-large;";
+						bar.appendChild( text_bar );
+
+						document.body.appendChild( bar );
+						text_bar.textContent = health_bar.style.width;
+
+						P2.healthWacher = function(prop, action, value){
+							health_bar.style.width = round( value, 1 ) + "%";
+							text_bar.textContent = health_bar.style.width;
+						};
+
+						watch( P2, "health", P2.healthWacher );
+
+					});
+
+
+
+				}
+
+				row.appendChild( button );
+				tab.appendChild( row );
+
+			});
+
+
 		</script>
 
 		<script>
 
 		//	Load Player 1.
 
-			setTimeout(function(){
+			(function(){
 
 				var loader = new THREE.FBXLoader();
 				loader.load( "/manny/characters/MannySwordIdle05.fbx", function( player ){
@@ -839,7 +965,7 @@
 						if ( !select ) return;
 						var object = {
 							name: player.name,
-							uuid: THREE.Math.generateUUID(),
+							uuid: player.uuid, // THREE.Math.generateUUID(),
 						};
 						if ( animationController ) {
 							object.animationController = animationController;
@@ -856,7 +982,7 @@
 					console.error(err);
 				});
 
-			});
+			})();
 
 		</script>
 
@@ -865,7 +991,7 @@
 
 		//	Load Player 2.
 
-			setTimeout(function(){
+			(function(){
 
 				var loader = new THREE.FBXLoader();
 				loader.load( "/manny/characters/MannySwordIdle04.fbx", function( player ){
@@ -1033,7 +1159,7 @@
 						if ( !select ) return;
 						var object = {
 							name: player.name,
-							uuid: THREE.Math.generateUUID(),
+							uuid: player.uuid, // THREE.Math.generateUUID(),
 						};
 						if ( animationController ) {
 							object.animationController = animationController;
@@ -1050,7 +1176,7 @@
 					console.error(err);
 				});
 
-			});
+			})();
 
 		</script>
 

@@ -673,7 +673,6 @@
 
 			})();
 
-
 			setTimeout(function(){
 
 			//	Action buttons container.
@@ -689,8 +688,62 @@
 
 			setTimeout(function(){
 
-			//	Start Battle.
+			//	New game.
 
+				P1 = {health:0}; 
+				P2 = {health:0};
+
+			//	Intersect bodies.
+
+				var intersectHead = new THREE.Mesh(
+					new THREE.SphereGeometry( 2, 6, 4 ),
+					new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
+				); 
+
+				var intersectBody = new THREE.Mesh(
+					new THREE.SphereGeometry( 4, 6, 4 ),
+					new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
+				); 
+
+				//	at "/manny/js/three.js" (r96) we comment line 43269:
+				//	"if ( object.visible === false ) return;" to accept invisible objects raycasting.
+				intersectHead.visible = intersectBody.visible = true; // TODO: false.
+
+				P1.intersectHead = intersectHead.clone();
+				P1.intersectBody = intersectBody.clone();
+				P2.intersectHead = intersectHead.clone();
+				P2.intersectBody = intersectBody.clone();
+
+				P1.intersectHead.name = "intersectHeadPlayer1";
+				P1.intersectBody.name = "intersectBodyPlayer1";
+				P2.intersectHead.name = "intersectHeadPlayer2";
+				P2.intersectBody.name = "intersectBodyPlayer2";
+
+			//	Attack helpers.
+				
+				var intersectLibs = new THREE.Mesh(
+					new THREE.SphereGeometry( 1, 6, 4 ),
+					new THREE.MeshBasicMaterial({color:0xff0000,  wireframe:true})
+				); 
+
+				P1.intersectLeftHand = intersectLibs.clone();
+				P1.intersectLeftFoot = intersectLibs.clone();
+				P1.intersectRightHand = intersectLibs.clone();
+				P1.intersectRightFoot = intersectLibs.clone();
+
+				P2.intersectLeftHand = intersectLibs.clone();
+				P2.intersectLeftFoot = intersectLibs.clone();
+				P2.intersectRightHand = intersectLibs.clone();
+				P2.intersectRightFoot = intersectLibs.clone();
+
+			});
+
+
+			setTimeout(function(){
+
+			//	Start Battle.
+				
+				var isFighting = false;
 				var tab = TabUI.Animations.tab;
 				var row = document.createElement("div");
 				row.style.cssText = "margin:20px 12px 10px;height:35px;text-align:center;";
@@ -701,24 +754,43 @@
 				button.style.cssText = "max-width:100%;width:100%;height:40px;font-size:large;";
 				button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
 
-				button.addEventListener( "click", startRaycasting );
+				button.addEventListener( "click", function(){
+					button.value = !button.value;
+				});
+
+				watch( button, "value", function(prop, action, value){
+					debugMode && console.log( "button value:",  value );
+
+					if ( !value ) button.textContent = "Start Battle";
+					else if ( value ) button.textContent = "Pause Battle";
+
+					isFighting = value;
+
+					startRaycasting();
+					
+				});
+
 				function startRaycasting(){
+
+					if ( !isFighting ) return;
 
 					document.getElementById("player1-bar") && document.getElementById("player1-bar").remove();
 					document.getElementById("player2-bar") && document.getElementById("player2-bar").remove();
 
-					button.removeEventListener( "click", startRaycasting );
-
 					player1.lookAt(player2.position); // TODO: get player1 from players droplist (via uuid).
 					player2.lookAt(player1.position); // TODO: get player2 from players droplist (via uuid).
-					
-					P1 = {health:0}; P2 = {health:0};
-					P1.health = 100; P2.health = 100;
+
+					P1.health = 100; P2.health = 100; // important!
 
 					setTimeout(function(){
 
 					//	Health bar (player 1).
-
+						
+						if ( !isFighting ) {
+							unwatch( P1, "health", P1.healthWacher );
+							return;
+						}
+					//
 						var bar = document.createElement("div");
 						bar.id = "player1-bar";
 						bar.title = "Player1 Health Bar";
@@ -751,7 +823,12 @@
 					setTimeout(function(){
 
 					//	Health bar (player 2).
-
+						
+						if ( !isFighting ) {
+							unwatch( P2, "health", P2.healthWacher );
+							return;
+						}
+					//
 						var bar = document.createElement("div");
 						bar.id = "player2-bar";
 						bar.title = "Player2 Health Bar";
@@ -781,7 +858,204 @@
 
 					});
 
+				//	Intersect bodies.
 
+					setTimeout(function(){
+						
+						var requestAnimationFrameID;
+						
+						P1.headBone = player1.getObjectByName("Head");
+						P1.bodyBone = player1.getObjectByName("Spine1");
+						P1.leftfootBone = player1.getObjectByName("LeftToeBase");
+						P1.rightfootBone = player1.getObjectByName("RightToeBase");
+						P1.lefthandBone = player1.getObjectByName("LeftHandIndex1");
+						P1.righthandBone = player1.getObjectByName("RightHandIndex1");
+
+						P2.headBone = player2.getObjectByName("Head");
+						P2.bodyBone = player2.getObjectByName("Spine1");
+						P2.leftfootBone = player2.getObjectByName("LeftToeBase");
+						P2.rightfootBone = player2.getObjectByName("RightToeBase");
+						P2.lefthandBone = player2.getObjectByName("LeftHandIndex1");
+						P2.righthandBone = player2.getObjectByName("RightHandIndex1");
+
+						scene.add( P1.intersectHead, P1.intersectBody );
+						scene.add( P1.intersectLeftFoot, P1.intersectRightFoot );
+						scene.add( P1.intersectLeftHand, P1.intersectRightHand );
+
+						scene.add( P2.intersectHead, P2.intersectBody );
+						scene.add( P2.intersectLeftFoot, P2.intersectRightFoot );
+						scene.add( P2.intersectLeftHand, P2.intersectRightHand );
+
+						(function update(){
+							requestAnimationFrameID = requestAnimationFrame( update );
+
+							if ( !isFighting ) {
+								cancelAnimationFrame( requestAnimationFrameID );
+							//	scene.remove( P1.intersectHead, P1.intersectBody );
+							//	scene.remove( P2.intersectHead, P2.intersectBody );
+								return;
+							}
+
+						//	player1.updateMatrixWorld(); // (we update scene.updateMatrixWorld() in world update). important! 
+							P1.intersectHead.position.setFromMatrixPosition(P1.headBone.matrixWorld);
+							P1.intersectHead.rotation.setFromRotationMatrix(P1.headBone.matrixWorld);
+							P1.intersectBody.position.setFromMatrixPosition(P1.bodyBone.matrixWorld);
+							P1.intersectBody.rotation.setFromRotationMatrix(P1.bodyBone.matrixWorld);
+						//	player2.updateMatrixWorld(); // (we update scene.updateMatrixWorld() in world update). important! 
+							P2.intersectHead.position.setFromMatrixPosition(P2.headBone.matrixWorld);
+							P2.intersectHead.rotation.setFromRotationMatrix(P2.headBone.matrixWorld);
+							P2.intersectBody.position.setFromMatrixPosition(P2.bodyBone.matrixWorld);
+							P2.intersectBody.rotation.setFromRotationMatrix(P2.bodyBone.matrixWorld);
+
+						//	Libs helpers.
+						//	player1.updateMatrixWorld(); // (we update scene.updateMatrixWorld() in world update). important! 
+							P1.intersectLeftFoot.position.setFromMatrixPosition(P1.leftfootBone.matrixWorld);
+							P1.intersectRightFoot.position.setFromMatrixPosition(P1.rightfootBone.matrixWorld);
+							P1.intersectLeftHand.position.setFromMatrixPosition(P1.lefthandBone.matrixWorld);
+							P1.intersectRightHand.position.setFromMatrixPosition(P1.righthandBone.matrixWorld);
+						//	player2.updateMatrixWorld(); // (we update scene.updateMatrixWorld() in world update). important! 
+							P2.intersectLeftFoot.position.setFromMatrixPosition(P2.leftfootBone.matrixWorld);
+							P2.intersectRightFoot.position.setFromMatrixPosition(P2.rightfootBone.matrixWorld);
+							P2.intersectLeftHand.position.setFromMatrixPosition(P2.lefthandBone.matrixWorld);
+							P2.intersectRightHand.position.setFromMatrixPosition(P2.righthandBone.matrixWorld);
+
+						})();
+
+					});
+
+					//	P1.LeftLeg = player1.getObjectByName("LeftLeg");
+					//	P1.LeftHandIndex1 = player1.getObjectByName("LeftHandIndex1");
+					//	P1.RightLeg = player1.getObjectByName("RightLeg");
+					//	var legBone = player1.getObjectByName("RightLeg");
+					//	P1.LegRaycaster = new THREE.Raycaster();
+
+				//	Hand Raycaster (player 1).
+
+					setTimeout(function(){
+
+						var requestAnimationFrameID;
+
+						var bone = P1.righthandBone; // player1.getObjectByName("RightHandIndex1");
+						var origin = new THREE.Vector3(); // .setFromMatrixPosition(bone.matrixWorld);
+						var direction = new THREE.Vector3(); // .setFromMatrixPosition(bone.matrixWorld);
+						var intersectObjects = [P2.intersectHead, P2.intersectBody];
+
+						var raycaster = new THREE.Raycaster();
+						raycaster.far = 5;
+						raycaster.ray.origin = origin.setFromMatrixPosition(bone.matrixWorld);
+						raycaster.ray.direction.subVectors( direction, origin ).normalize(); // important! Must be normalize.
+
+					//	ray helper.
+						var material = new THREE.LineBasicMaterial({color:0x00ff00});
+						var geometry = new THREE.Geometry();
+						geometry.vertices.push( origin, direction );
+						var line = new THREE.Line( geometry, material ); 
+						scene.add( line );
+
+					//	raycaster helper.
+						var arrow = new THREE.ArrowHelper( direction, origin, 10, 0xffffff );
+						arrow.setLength(raycaster.far);
+						arrow.setDirection(raycaster.ray.direction);
+						scene.add( arrow );
+
+						(function update(){
+							requestAnimationFrameID = requestAnimationFrame( update );
+
+							if ( !( P1.health > 0 && P2.health > 0 ) ) {
+								cancelAnimationFrame( requestAnimationFrameID );
+								(function(){
+									var select = document.getElementById("players-droplist");
+									select.players.player1.animationController.play("idling");
+									player1.rotation.y = 0;
+									scene.remove( line, arrow ); 
+								})();
+								return;
+							} 
+							
+							if ( !isFighting ) {
+								cancelAnimationFrame( requestAnimationFrameID );
+								scene.remove( line, arrow );
+								return;
+							}
+
+							origin.copy( P1.intersectRightHand.position ); //.setFromMatrixPosition(bone.matrixWorld);
+							direction.copy( P2.intersectBody.position ); //.setFromMatrixPosition(Spine.matrixWorld);
+							line.geometry.verticesNeedUpdate = true; // important!
+
+						//	raycaster.ray.origin = origin;
+							raycaster.ray.direction.subVectors( direction, origin ).normalize(); // important! Must be normalize.
+
+						//	arrow.setLength(raycaster.far);
+							arrow.position.copy( raycaster.ray.origin );
+							arrow.setDirection( raycaster.ray.direction );
+
+						})();
+
+					});
+
+				//	Foot Raycaster (player 1).
+
+					setTimeout(function(){
+
+						var requestAnimationFrameID;
+
+						var bone = P1.rightfootBone; // player1.getObjectByName("RightToeBase");
+						var origin = new THREE.Vector3(); // .setFromMatrixPosition(bone.matrixWorld);
+						var direction = new THREE.Vector3(); // .setFromMatrixPosition(bone.matrixWorld);
+						var intersectObjects = [P2.intersectHead, P2.intersectBody];
+
+						var raycaster = new THREE.Raycaster();
+						raycaster.far = 5;
+						raycaster.ray.origin = origin.setFromMatrixPosition(bone.matrixWorld);
+						raycaster.ray.direction.subVectors( direction, origin ).normalize(); // important! Must be normalize.
+
+					//	ray helper.
+						var material = new THREE.LineBasicMaterial({color:0x00ff00});
+						var geometry = new THREE.Geometry();
+						geometry.vertices.push( origin, direction );
+						var line = new THREE.Line( geometry, material ); 
+						scene.add( line );
+
+					//	raycaster helper.
+						var arrow = new THREE.ArrowHelper( direction, origin, 10, 0xffffff );
+						arrow.setLength(raycaster.far);
+						arrow.setDirection(raycaster.ray.direction);
+						scene.add( arrow );
+
+						(function update(){
+							requestAnimationFrameID = requestAnimationFrame( update );
+
+							if ( !( P1.health > 0 && P2.health > 0 ) ) {
+								cancelAnimationFrame( requestAnimationFrameID );
+								(function(){
+									var select = document.getElementById("players-droplist");
+									select.players.player1.animationController.play("idling");
+									player1.rotation.y = 0;
+									scene.remove( line, arrow ); 
+								})();
+								return;
+							} 
+							
+							if ( !isFighting ) {
+								cancelAnimationFrame( requestAnimationFrameID );
+								scene.remove( line, arrow );
+								return;
+							}
+
+							origin.copy( P1.intersectRightFoot.position ); //.setFromMatrixPosition(bone.matrixWorld);
+							direction.copy( P2.intersectBody.position ); //.setFromMatrixPosition(Spine.matrixWorld);
+							line.geometry.verticesNeedUpdate = true; // important!
+
+						//	raycaster.ray.origin = origin;
+							raycaster.ray.direction.subVectors( direction, origin ).normalize(); // important! Must be normalize.
+
+						//	arrow.setLength(raycaster.far);
+							arrow.position.copy( raycaster.ray.origin );
+							arrow.setDirection( raycaster.ray.direction );
+
+						})();
+
+					});
 
 				}
 
@@ -789,7 +1063,6 @@
 				tab.appendChild( row );
 
 			});
-
 
 		</script>
 
@@ -905,59 +1178,6 @@
 					if ( animationController.motion.idling ) {
 						animationController.play("idling");
 					}
-
-				//	Player intersect body.
-
-					setTimeout(function(){
-
-						var bone = player.getObjectByName("Spine1");
-						var intersectBody = new THREE.Mesh(
-							new THREE.SphereGeometry( 4, 6, 4 ),
-							new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
-						); 
-
-						intersectBody.name = "intersectBodyPlayer1";
-						scene.add( intersectBody ); // important!
-
-					//	at "/manny/js/three.js" (r96) we comment 
-					//	line 43269: "if ( object.visible === false ) return;"
-					//	to accept invisible objects raycasting.
-						intersectBody.visible = false;
-
-						(function update(){
-							requestAnimationFrame( update );
-						//	scene.updateMatrixWorld(); // important! (we do in world update).
-							intersectBody.position.setFromMatrixPosition(bone.matrixWorld);
-							intersectBody.rotation.setFromRotationMatrix(bone.matrixWorld);
-						})();
-					});
-
-				//	Player intersect head.
-
-					setTimeout(function(){
-
-						var bone = player.getObjectByName("Head");
-						var intersectHead = new THREE.Mesh(
-							new THREE.SphereGeometry( 2, 6, 4 ),
-							new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
-						); 
-
-						intersectHead.name = "intersectHeadPlayer1";
-						scene.add( intersectHead ); // important!
-
-					//	at "/manny/js/three.js" (r96) we comment 
-					//	line 43269: "if ( object.visible === false ) return;"
-					//	to accept invisible objects raycasting.
-						intersectHead.visible = false;
-
-						(function update(){
-							requestAnimationFrame( update );
-						//	scene.updateMatrixWorld(); // important! (we do in world update).
-							intersectHead.position.setFromMatrixPosition(bone.matrixWorld);
-							intersectHead.rotation.setFromRotationMatrix(bone.matrixWorld);
-						})();
-					});
-
 
 				//	Players droplist.
 
@@ -1100,6 +1320,88 @@
 						animationController.play("idling");
 					}
 
+				//	Players droplist.
+
+					(function( select ){
+						if ( !select ) return;
+						var object = {
+							name: player.name,
+							uuid: player.uuid, // THREE.Math.generateUUID(),
+						};
+						if ( animationController ) {
+							object.animationController = animationController;
+						}
+						select.addPlayer( player.name, object);
+					})( document.getElementById("players-droplist") );
+
+					player2 = player; // debug!
+
+				},
+
+				function(e){}, 
+				function(err){
+					console.error(err);
+				});
+
+			})();
+
+		</script>
+
+		<script>
+/*
+				//	Player intersect body.
+
+					setTimeout(function(){
+
+						var bone = player.getObjectByName("Spine1");
+						var intersectBody = new THREE.Mesh(
+							new THREE.SphereGeometry( 4, 6, 4 ),
+							new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
+						); 
+
+						intersectBody.name = "intersectBodyPlayer1";
+						scene.add( intersectBody ); // important!
+
+					//	at "/manny/js/three.js" (r96) we comment 
+					//	line 43269: "if ( object.visible === false ) return;"
+					//	to accept invisible objects raycasting.
+						intersectBody.visible = false;
+
+						(function update(){
+							requestAnimationFrame( update );
+						//	scene.updateMatrixWorld(); // important! (we do in world update).
+							intersectBody.position.setFromMatrixPosition(bone.matrixWorld);
+							intersectBody.rotation.setFromRotationMatrix(bone.matrixWorld);
+						})();
+					});
+
+				//	Player intersect head.
+
+					setTimeout(function(){
+
+						var bone = player.getObjectByName("Head");
+						var intersectHead = new THREE.Mesh(
+							new THREE.SphereGeometry( 2, 6, 4 ),
+							new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
+						); 
+
+						intersectHead.name = "intersectHeadPlayer1";
+						scene.add( intersectHead ); // important!
+
+					//	at "/manny/js/three.js" (r96) we comment 
+					//	line 43269: "if ( object.visible === false ) return;"
+					//	to accept invisible objects raycasting.
+						intersectHead.visible = false;
+
+						(function update(){
+							requestAnimationFrame( update );
+						//	scene.updateMatrixWorld(); // important! (we do in world update).
+							intersectHead.position.setFromMatrixPosition(bone.matrixWorld);
+							intersectHead.rotation.setFromRotationMatrix(bone.matrixWorld);
+						})();
+					});
+*/
+/*
 				//	Player intersect body.
 
 					setTimeout(function(){
@@ -1151,32 +1453,7 @@
 							intersectHead.rotation.setFromRotationMatrix(bone.matrixWorld);
 						})();
 					});
-
-
-				//	Players droplist.
-
-					(function( select ){
-						if ( !select ) return;
-						var object = {
-							name: player.name,
-							uuid: player.uuid, // THREE.Math.generateUUID(),
-						};
-						if ( animationController ) {
-							object.animationController = animationController;
-						}
-						select.addPlayer( player.name, object);
-					})( document.getElementById("players-droplist") );
-
-					player2 = player; // debug!
-
-				},
-
-				function(e){}, 
-				function(err){
-					console.error(err);
-				});
-
-			})();
+*/
 
 		</script>
 

@@ -744,7 +744,10 @@
 				); 
 
 				P1.intersectRightSword = intersectWepon.clone();
-				P2.intersectRightSword = intersectWepon.clone();
+
+			//	P1.swordDirection = swordDirectionHelper.clone();
+			//	P1.swordDirection.position.set(7, 0.4, -1.9);
+			//	scene.add( P1.swordDirection );
 
 			});
 
@@ -880,9 +883,8 @@
 						P1.rightfootBone = player1.getObjectByName("RightToeBase");
 						P1.lefthandBone = player1.getObjectByName("LeftHandIndex1");
 						P1.righthandBone = player1.getObjectByName("RightHandIndex1");
-						scene.add( P1.intersectHead, P1.intersectBody );
-						scene.add( P1.intersectLeftFoot, P1.intersectRightFoot );
-						scene.add( P1.intersectLeftHand, P1.intersectRightHand );
+
+						P1.rightswordBone = player1.getObjectByName("RightHandIndex1Sword");
 
 						P2.headBone = player2.getObjectByName("Head");
 						P2.bodyBone = player2.getObjectByName("Spine1");
@@ -890,14 +892,16 @@
 						P2.rightfootBone = player2.getObjectByName("RightToeBase");
 						P2.lefthandBone = player2.getObjectByName("LeftHandIndex1");
 						P2.righthandBone = player2.getObjectByName("RightHandIndex1");
+
+						scene.add( P1.intersectHead, P1.intersectBody );
+						scene.add( P1.intersectLeftFoot, P1.intersectRightFoot );
+						scene.add( P1.intersectLeftHand, P1.intersectRightHand );
+
+						scene.add( P1.intersectRightSword );
+
 						scene.add( P2.intersectHead, P2.intersectBody );
 						scene.add( P2.intersectLeftFoot, P2.intersectRightFoot );
 						scene.add( P2.intersectLeftHand, P2.intersectRightHand );
-
-						P1.rightswordBone = player1.getObjectByName("RightHandIndex1Sword");
-						P2.rightswordBone = player2.getObjectByName("RightHandIndex1Sword");
-						scene.add( P1.intersectRightSword, P2.intersectRightSword ); // important!
-
 
 						(function update(){
 							requestAnimationFrameID = requestAnimationFrame( update );
@@ -908,12 +912,12 @@
 								scene.remove( P1.intersectHead, P1.intersectBody );
 								scene.remove( P2.intersectHead, P2.intersectBody );
 
+								scene.remove( P1.intersectRightSword );
+
 								scene.remove( P1.intersectLeftFoot, P1.intersectRightFoot );
 								scene.remove( P1.intersectLeftHand, P1.intersectRightHand );
 								scene.remove( P2.intersectLeftFoot, P2.intersectRightFoot );
 								scene.remove( P2.intersectLeftHand, P2.intersectRightHand );
-
-								scene.remove( P1.intersectRightSword, P2.intersectRightSword );
 
 								return;
 							}
@@ -935,19 +939,24 @@
 							P1.intersectRightFoot.position.setFromMatrixPosition(P1.rightfootBone.matrixWorld);
 							P1.intersectLeftHand.position.setFromMatrixPosition(P1.lefthandBone.matrixWorld);
 							P1.intersectRightHand.position.setFromMatrixPosition(P1.righthandBone.matrixWorld);
+
+							P1.intersectRightSword.position.setFromMatrixPosition(P1.rightswordBone.matrixWorld);
+
 						//	player2.updateMatrixWorld(); // (we update scene.updateMatrixWorld() in world update). important! 
 							P2.intersectLeftFoot.position.setFromMatrixPosition(P2.leftfootBone.matrixWorld);
 							P2.intersectRightFoot.position.setFromMatrixPosition(P2.rightfootBone.matrixWorld);
 							P2.intersectLeftHand.position.setFromMatrixPosition(P2.lefthandBone.matrixWorld);
 							P2.intersectRightHand.position.setFromMatrixPosition(P2.righthandBone.matrixWorld);
 
-						//	Wepon helpers.
-							P1.intersectRightSword.position.setFromMatrixPosition(P1.rightswordBone.matrixWorld);
-							P2.intersectRightSword.position.setFromMatrixPosition(P2.rightswordBone.matrixWorld);
-
 						})();
 
 					});
+
+					//	P1.LeftLeg = player1.getObjectByName("LeftLeg");
+					//	P1.LeftHandIndex1 = player1.getObjectByName("LeftHandIndex1");
+					//	P1.RightLeg = player1.getObjectByName("RightLeg");
+					//	var legBone = player1.getObjectByName("RightLeg");
+					//	P1.LegRaycaster = new THREE.Raycaster();
 
 				//	Hand Raycaster (player 1).
 
@@ -967,7 +976,7 @@
 						origin.copy( P1.intersectRightHand.position );
 
 					//	raycaster helper.
-						var arrow = new THREE.ArrowHelper( direction, origin );
+						arrow = new THREE.ArrowHelper( direction, origin );
 						arrow.position.copy( origin );
 						arrow.setDirection( direction ); // must be noramlized!
 
@@ -1025,87 +1034,6 @@
 						//	}
 
 							P2.health -= (raycaster.far - intersects[0].distance);
-
-						})();
-
-					});
-
-				//	Hand Raycaster (player 2).
-
-					setTimeout(function(){
-
-						var requestAnimationFrameID;
-
-						var far = 9;
-						var origin = new THREE.Vector3(); // P2.intersectRightHand.position;
-						var direction = new THREE.Vector3();
-						var intersectObjects = [P1.intersectHead, P1.intersectBody];
-
-						direction.subVectors(
-							P2.intersectRightSword.position, // direction,
-							P2.intersectRightHand.position // origin
-						).normalize();  // must be noramlized!
-						origin.copy( P2.intersectRightHand.position );
-
-					//	raycaster helper.
-						var arrow = new THREE.ArrowHelper( direction, origin );
-						arrow.position.copy( origin );
-						arrow.setDirection( direction ); // must be noramlized!
-
-						arrow.setLength( far );
-						arrow.setColor( new THREE.Color().setHex(0x00ff00) );
-						scene.add( arrow ); // arrow.remove( arrow.cone );
-
-					//	Sword raycaster.
-						var raycaster = new THREE.Raycaster();
-						raycaster.far = far;
-						raycaster.ray.set( origin, direction );
-						
-						player2.visible = false;
-
-						(function update(){
-							requestAnimationFrameID = requestAnimationFrame( update );
-
-							if ( !( P1.health > 0 && P2.health > 0 ) ) {
-								cancelAnimationFrame( requestAnimationFrameID );
-								players.player2.animationController.play("idling");
-								player1.rotation.y = 0; 
-								player2.rotation.y = 0;
-								scene.remove( arrow ); 
-								player2.visible = true;
-								isFighting = false;
-								return;
-							} 
-							
-							if ( !isFighting ) {
-								cancelAnimationFrame( requestAnimationFrameID );
-								scene.remove( arrow ); 
-								player2.visible = true;
-								return;
-							}
-
-							origin.copy( P2.intersectRightHand.position );
-							direction.subVectors(
-								P2.intersectRightSword.position, // direction,
-								P2.intersectRightHand.position // origin
-							).normalize();  // must be noramlized. important!
-
-							raycaster.ray.set( origin, direction );
-
-						//	arrow.setLength(raycaster.far);
-							arrow.position.copy( raycaster.ray.origin );
-							arrow.setDirection( raycaster.ray.direction ); // must be noramlized!
-
-							var intersects = raycaster.intersectObjects( intersectObjects );
-
-							if ( !intersects.length ) return;
-							debugMode && console.log( intersects.length );
-
-						//	for ( var i = 0; i < intersects.length; i++ ) {
-						//		P1.health -= (raycaster.far - intersects[i].distance); // or (...)/10; or (...)/100;
-						//	}
-
-							P1.health -= (raycaster.far - intersects[0].distance);
 
 						})();
 
@@ -1362,6 +1290,7 @@
 					var wepons = {};	// create wepon options. TODO!
 					var skinned = {};	// create skinned options. TODO!
 					var armature; 		// THREE.Group.
+					var animationController;
 					var animations = player.animations;
 
 					player.traverse( function( child ){
@@ -1421,19 +1350,6 @@
 						"armature":armature,"bones":bones,"meshes":meshes,
 						"wepons":wepons,"skinned":skinned,"animations":animations
 					});
-
-				//	Add sword bone.
-					(function(){
-						var bone = new THREE.Bone();
-						bone.name = "RightHandIndex1Sword";
-						bone.position.set(200, 20, -80); // importrant!
-						player.getObjectByName("RightHandIndex1").add(bone);
-					//	Skeleton helper (debug).
-						var helper = new THREE.SkeletonHelper( player );
-						scene.add( helper );
-						debugMode && console.log( helper );
-					})();
-
 
 				//	Animation controller.
 

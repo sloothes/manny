@@ -96,7 +96,7 @@
 
 		<script>
 
-			const debugMode = true; // important!
+			debugMode = true; // important!
 			MW.install( THREE ); // important!
 
 		//	CameraControls.install( {THREE:THREE} ); // demo!
@@ -930,34 +930,36 @@
 						if ( !value ) button.textContent = "Start Battle";
 						else if ( value ) button.textContent = "Pause Battle";
 
+						if ( !isFighting ) {
+							var playersDroplist = document.getElementById("players-droplist");
+							playersDroplist.getAnimationController("player1").turn(0);
+							playersDroplist.getAnimationController("player2").turn(0);
+						}
+
+						startRaycasting();
+
+					});
+
+				//	var playersDroplist = document.getElementById("players-droplist");
+
+					function startRaycasting(){
+
+						if ( !isFighting ) { return; }
+
+						P1.health = 100; P2.health = 100; // important!
+						P1.appendBar();  P2.appendBar();  // important!
+
+						var playersDroplist = document.getElementById("players-droplist");
+
 						var player1 = scene.getObjectByName( "player1" ); // TODO: local.
 						var player2 = scene.getObjectByName( "player2" ); // TODO: local.
 
-						var playersDroplist = document.getElementById("players-droplist");
 						var animationController1 = playersDroplist.getAnimationController("player1");
 						var animationController2 = playersDroplist.getAnimationController("player2");
-						animationController1.play("idling" ); animationController2.play( "idling" ); 
+						animationController1.turn(Math.PI/2); animationController2.turn(-Math.PI/2);
 
-						if ( !isFighting ) {
-							animationController1.turn(0); animationController2.turn(0);
-						} else {
-							animationController1.turn(Math.PI/2); animationController2.turn(-Math.PI/2);
-						}
-
-					//	startRaycasting();
-
-						if ( value ) {
-
-							P1.health = 100; P2.health = 100; // important!
-							P1.appendBar();  P2.appendBar();  // important!
-
-							updatePointObjects( "player1", P1 );
-							updatePointObjects( "player2", P2 );
-
-							swordRaycaster(P1, P2);
-							swordRaycaster(P2, P1);
-
-						}
+						updatePointObjects( "player1", P1 );
+						updatePointObjects( "player2", P2 );
 
 						function updatePointObjects( name, p ){
 
@@ -992,7 +994,7 @@
 
 					//	Sword Raycaster (player 1).
 
-						function swordRaycaster(P1, P2){
+						setTimeout(function(){
 
 							var requestAnimationFrameID;
 
@@ -1020,7 +1022,7 @@
 								if ( P2.health < 0 ) {
 									cancelAnimationFrame( requestAnimationFrameID ); 
 									scene.remove(P2.intersectHead, P2.intersectBody);
-									P2.health = 0; isFighting = button.value = false;
+									P2.health = 0; isFighting = false;
 									return; 
 
 								}
@@ -1046,14 +1048,51 @@
 
 							})();
 
-						} // end swordRaycaster()
+						});
 
-					}); // end watch().
+					} // end startRaycasting().
 
+				});
 
-				}); // end setTimeout().
 
 			})();
+
+		</script>
+
+		<script>
+
+/*
+						(function(){
+
+							var requestAnimationFrameID;
+							var player = scene.getObjectByName( "player2" );
+
+							if ( !player ) return;
+
+							var headBone = player.getObjectByName("Head");
+							var bodyBone = player.getObjectByName("Spine1");
+							var leftfootBone = player.getObjectByName("LeftToeBase");
+							var lefthandBone = player.getObjectByName("LeftHandIndex1");
+							var rightfootBone = player.getObjectByName("RightToeBase");
+							var righthandBone = player.getObjectByName("RightHandIndex1");
+							var rightswordBone = player.getObjectByName("RightHandIndex1Sword");
+
+							(function update(){
+								requestAnimationFrameID = requestAnimationFrame( update );
+
+								if ( !isFighting ) { cancelAnimationFrame( requestAnimationFrameID ); return; }
+
+								P2.intersectHead.position.setFromMatrixPosition(headBone.matrixWorld);
+								P2.intersectBody.position.setFromMatrixPosition(bodyBone.matrixWorld);
+								P2.LeftHand.position.setFromMatrixPosition(lefthandBone.matrixWorld);
+								P2.LeftFoot.position.setFromMatrixPosition(leftfootBone.matrixWorld);
+								P2.RightHand.position.setFromMatrixPosition(righthandBone.matrixWorld);
+								P2.RightFoot.position.setFromMatrixPosition(rightfootBone.matrixWorld);
+								P2.RightHandSword.position.setFromMatrixPosition(rightswordBone.matrixWorld);
+							})();
+
+						})();
+*/
 
 		</script>
 
@@ -1171,7 +1210,21 @@
 
 					//	create animation controller.
 					var animationController = new MW.AnimationController( player );
-
+/*
+					//	experimental.
+					animationController.queue = [];
+					animationController.mixer.addEventListener("play next", function(){
+						if ( animationController.queue.length == 0 ) {
+							animationController.elapsedTime = 0;
+							animationController.motion.idling.reset();
+							animationController.play( "idling" ); 
+							return;
+						}
+						debugMode && console.log(animationController.queue[0]);
+						animationController.motion[ animationController.queue[0] ].reset();
+						animationController.play( animationController.queue[0] );
+					});
+*/
 					//	bind animations.
 					(function( select ){
 						var mixer = animationController.mixer; 

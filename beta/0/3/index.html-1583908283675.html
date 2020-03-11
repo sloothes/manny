@@ -96,7 +96,7 @@
 
 		<script>
 
-			const debugMode = true; // important!
+			debugMode = true; // important!
 			MW.install( THREE ); // important!
 
 		//	CameraControls.install( {THREE:THREE} ); // demo!
@@ -414,14 +414,6 @@
 					currentAnimation = this.value;
 				});
 
-				select.addEventListener( "change", function(){
-					var select = document.getElementById("players-droplist");
-					var animationController = select.getAnimationController( currentPlayer );
-					if ( !( select && animationController ) ) return; 
-					if ( !animationController.motion.idling ) return;
-					animationController.play( "idling" );
-				});
-
 				select.addAnimation = function( name, clip ){
 					animations.push( clip );
 					var option = document.createElement("option");
@@ -714,7 +706,7 @@
 					"great sword slash (5).fbx",
 				];
 
-				var idlingInterval; // important!
+				var idleInterval; // important!
 
 				filenames.forEach(function( filename ){
 					var loader = new THREE.FBXLoader();
@@ -723,43 +715,52 @@
 
 						var clip = group.animations[0];
 						clip.name = filename.replace(".fbx", "");
-						debugMode && console.log( clip );
 
 						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
 
-						(function AddActionButton( clip ){
+						(function AddActionButton( name ){
 
-							var interval;
-							var button = document.createElement("div");
-							button.id = button.title = clip.name;
-							button.classList.add("btn", "btn-white-outline", "btn-action");
-							button.style.cssText = "background-size:contain;"
-							+ "background-image:url('/manny/animations/thumbs/"+clip.name+".png');";
-							document.getElementById("action-buttons").appendChild( button );
+							var actionButton = document.createElement("div");
+							actionButton.id = actionButton.title = name;
+							actionButton.classList.add("btn", "btn-white-outline", "btn-action");
+							actionButton.style.cssText = "background-size:contain;"
+							+ "background-image:url('/manny/animations/thumbs/"+name+".png');";
+			
+							document.getElementById("action-buttons").appendChild( actionButton );
 
-							button.addEventListener( "click", function actionHandler(){
+							actionButton.addEventListener( "click", function actionClickHandler(){
 								
-							//	debugMode && console.log( actionButton.id );
+								debugMode && console.log( actionButton.id );
 
 								var select = document.getElementById("players-droplist");
 								var animationController = select.getAnimationController( currentPlayer );
-								if ( !( select && animationController && animationController.motion[clip.name] ) ) return;
 
-								var timeout = parseInt( clip.duration * 1000 );
+								if ( !animationController ) return;
 
-								clearTimeout( idlingInterval ); // important!
-								idlingInterval = setTimeout(function(){ animationController.play( "idling" ); }, timeout);
+							//	experimental.
+								if ( animationController.queue ) {
+									if ( animationController.queue.length == 0 ) animationController.elapsedTime = 0; // reset elapsedTime counter.
+									animationController.elapsedTime += parseInt( animationController.motion[ actionButton.id ]._clip.duration * 1000 );
+									setTimeout(function(){ animationController.mixer.dispatchEvent({type:"play next"}); }, animationController.elapsedTime);
+									animationController.queue.push( actionButton.id ); 
+									return;
+								}
 
-							//	use seperate "setTimout" to ensure "addEventListener" restore.
-								button.removeEventListener( "click", actionHandler );
-								setTimeout(function(){ button.addEventListener( "click", actionHandler ); }, timeout);
+								var timeout = parseInt( animationController.motion[ actionButton.id ]._clip.duration * 1000 );
 
-								animationController.motion[ clip.name ].reset();
-								animationController.play( clip.name );
+								clearTimeout( idleInterval ); // important!
+								idleInterval = setTimeout(function(){ animationController.play( "idling" ); }, timeout);
+
+								//	put "addEventListener" to seperate setTimout to ensure restore.
+								actionButton.removeEventListener( "click", actionClickHandler );
+								setTimeout(function(){ actionButton.addEventListener( "click", actionClickHandler ); }, timeout);
+
+								animationController.motion[ actionButton.id ].reset();
+								animationController.play( actionButton.id );
 
 							});
 
-						})( clip );
+						})( clip.name );
 
 					},
 
@@ -772,288 +773,23 @@
 
 			})();
 
-		</script>
 
-		<script>
 
-		//	New game.
 
-			(function(){
 
-				var intersectHead = new THREE.Mesh(
-					new THREE.SphereGeometry( 2, 6, 4 ),
-					new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
-				); 
 
-				var intersectBody = new THREE.Mesh(
-					new THREE.SphereGeometry( 4, 6, 4 ),
-					new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
-				);
 
-			//	at "/manny/js/three.js" (r96) we comment
-			//	line 43269: "if ( object.visible === false ) return;" 
-			//	to accept invisible objects raycasting.
 
-				intersectHead.visible = debugMode;
-				intersectBody.visible = debugMode;
 
 
-				P1 = {health:0}; // TODO: local?
-				P2 = {health:0}; // TODO: local?
 
-			//	Player1.
 
-				P1.intersectHead = intersectHead.clone();
-				P1.intersectBody = intersectBody.clone();
 
-				P1.LeftHand = new THREE.Object3D();
-				P1.LeftFoot = new THREE.Object3D();
-				P1.RightHand = new THREE.Object3D();
-				P1.RightFoot = new THREE.Object3D();
-				P1.RightHandSword = new THREE.Object3D();
 
-			//	Player2.
 
-				P2.intersectHead = intersectHead.clone();
-				P2.intersectBody = intersectBody.clone();
 
-				P2.LeftHand = new THREE.Object3D();
-				P2.LeftFoot = new THREE.Object3D();
-				P2.RightHand = new THREE.Object3D();
-				P2.RightFoot = new THREE.Object3D();
-				P2.RightHandSword = new THREE.Object3D();
 
 
-			//	Health bar (player 1).
-
-				(function(){
-
-					var bar = document.createElement("div");
-					bar.id = "player1-bar";
-					bar.title = "Player1 Health Bar";
-					bar.style.cssText = "width:350px;height:40px;position:fixed;top:10px;left:10px;"
-						+ "border:2px solid #fff;border-radius:8px;background-color:#f00;";
-
-					var health_bar = document.createElement("div");
-					health_bar.id = "player1-health-bar";
-					health_bar.style.cssText = "width:100%;height:100%;"
-					+ "background-color:#ff0;float:left;border-radius:4px;";
-					bar.appendChild( health_bar );
-
-					var text_bar = document.createElement("div");
-					text_bar.style.cssText = "width:100%;text-align:center;background:none;"
-						+ "position:absolute;font-weight:bold;color:#fff;font-size:x-large;";
-					text_bar.textContent = P1.health+"%";
-					bar.appendChild( text_bar );
-
-					P1.appendBar = function(){
-						document.body.appendChild( bar );
-					};
-
-					P1.removeBar = function(){
-						bar.remove();
-					};
-
-					P1.healthWacher = function(prop, action, value){
-						health_bar.style.width = round( value, 1 ) + "%";
-						text_bar.textContent = health_bar.style.width;
-					};
-
-					watch( P1, "health", P1.healthWacher );
-
-				})();
-
-
-			//	Health bar (player 2).
-
-				(function(){
-
-					var bar = document.createElement("div");
-					bar.id = "player2-bar";
-					bar.title = "Player2 Health Bar";
-					bar.style.cssText = "width:350px;height:40px;position:fixed;top:10px;right:380px;"
-						+ "border:2px solid #fff;border-radius:8px;background-color:#f00;";
-
-					var health_bar = document.createElement("div");
-					health_bar.id = "player2-health-bar";
-					health_bar.style.cssText = "width:100%;height:100%;border-radius:4px;"
-						+ "background-color:#ff0;float:right;";
-					bar.appendChild( health_bar );
-
-					var text_bar = document.createElement("div");
-					text_bar.style.cssText = "width:100%;text-align:center;background:none;"
-						+ "position:absolute;font-weight:bold;color:#fff;font-size:x-large;";
-					text_bar.textContent = P2.health+"%";
-					bar.appendChild( text_bar );
-
-					P2.appendBar = function(){
-						document.body.appendChild( bar );
-					};
-
-					P2.removeBar = function(){
-						bar.remove();
-					};
-
-					P2.healthWacher = function(prop, action, value){
-						health_bar.style.width = round( value, 1 ) + "%";
-						text_bar.textContent = health_bar.style.width;
-					};
-
-					watch( P2, "health", P2.healthWacher );
-
-				})();
-
-			//	Start game button.
-
-				setTimeout(function(){
-
-					var tab = TabUI.Game.tab;
-					var row = document.createElement("div");
-					row.style.cssText = "margin:20px 12px 10px;height:35px;text-align:center;";
-
-					var button = document.createElement("div");
-					button.id = "start-raycasting";
-					button.textContent = "Start Battle";
-					button.style.cssText = "max-width:100%;width:100%;height:40px;font-size:large;";
-					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
-					button.addEventListener( "click", function(){ 
-						button.value = !button.value; 
-					});
-
-					row.appendChild( button );
-					tab.appendChild( row );
-
-					watch( button, "value", function(prop, action, value){
-
-						isFighting = value; debugMode && console.log( "isFighting:", isFighting );
-
-						if ( !value ) button.textContent = "Start Battle";
-						else if ( value ) button.textContent = "Pause Battle";
-
-						var player1 = scene.getObjectByName( "player1" ); // TODO: local.
-						var player2 = scene.getObjectByName( "player2" ); // TODO: local.
-
-						var playersDroplist = document.getElementById("players-droplist");
-						var animationController1 = playersDroplist.getAnimationController("player1");
-						var animationController2 = playersDroplist.getAnimationController("player2");
-						animationController1.play("idling" ); animationController2.play( "idling" ); 
-
-						if ( !isFighting ) {
-							animationController1.turn(0); animationController2.turn(0);
-						} else {
-							animationController1.turn(Math.PI/2); animationController2.turn(-Math.PI/2);
-						}
-
-					//	startRaycasting();
-
-						if ( value ) {
-
-							P1.health = 100; P2.health = 100; // important!
-							P1.appendBar();  P2.appendBar();  // important!
-
-							updatePointObjects( "player1", P1 );
-							updatePointObjects( "player2", P2 );
-
-							swordRaycaster(P1, P2);
-							swordRaycaster(P2, P1);
-
-						}
-
-						function updatePointObjects( name, p ){
-
-							var requestAnimationFrameID;
-							var player = scene.getObjectByName( name );
-
-							if ( !player ) return;
-
-							var headBone = player.getObjectByName("Head");
-							var bodyBone = player.getObjectByName("Spine1");
-							var leftfootBone = player.getObjectByName("LeftToeBase");
-							var lefthandBone = player.getObjectByName("LeftHandIndex1");
-							var rightfootBone = player.getObjectByName("RightToeBase");
-							var righthandBone = player.getObjectByName("RightHandIndex1");
-							var rightswordBone = player.getObjectByName("RightHandIndex1Sword");
-
-							(function update(){
-								requestAnimationFrameID = requestAnimationFrame( update );
-
-								if ( !isFighting ) { cancelAnimationFrame( requestAnimationFrameID ); return; }
-
-								p.intersectHead.position.setFromMatrixPosition(headBone.matrixWorld);
-								p.intersectBody.position.setFromMatrixPosition(bodyBone.matrixWorld);
-								p.LeftHand.position.setFromMatrixPosition(lefthandBone.matrixWorld);
-								p.LeftFoot.position.setFromMatrixPosition(leftfootBone.matrixWorld);
-								p.RightHand.position.setFromMatrixPosition(righthandBone.matrixWorld);
-								p.RightFoot.position.setFromMatrixPosition(rightfootBone.matrixWorld);
-								p.RightHandSword.position.setFromMatrixPosition(rightswordBone.matrixWorld);
-							})();
-
-						}
-
-					//	Sword Raycaster (player 1).
-
-						function swordRaycaster(P1, P2){
-
-							var requestAnimationFrameID;
-
-							var far = 9;
-							var origin = new THREE.Vector3();
-							var direction = new THREE.Vector3();
-							var intersectObjects = [P2.intersectHead, P2.intersectBody];
-							
-							scene.add(P2.intersectHead, P2.intersectBody);
-
-							origin.copy( P1.RightHand.position );
-							direction.subVectors(
-								P1.RightHandSword.position, // direction,
-								P1.RightHand.position // origin
-							).normalize();  // must be noramlized!
-
-						//	Sword raycaster.
-							var raycaster = new THREE.Raycaster();
-							raycaster.far = far;
-							raycaster.ray.set( origin, direction );
-
-							(function update(){
-								requestAnimationFrameID = requestAnimationFrame( update );
-
-								if ( P2.health < 0 ) {
-									cancelAnimationFrame( requestAnimationFrameID ); 
-									scene.remove(P2.intersectHead, P2.intersectBody);
-									P2.health = 0; isFighting = button.value = false;
-									return; 
-
-								}
-
-								if ( !isFighting ) { 
-									cancelAnimationFrame( requestAnimationFrameID ); 
-									scene.remove(P2.intersectHead, P2.intersectBody);
-									return; 
-								}
-
-								origin.copy( P1.RightHand.position );
-								direction.subVectors(
-									P1.RightHandSword.position, // direction,
-									P1.RightHand.position // origin
-								).normalize();  // must be noramlized!
-
-								raycaster.ray.set( origin, direction );
-
-								var intersects = raycaster.intersectObjects( intersectObjects );
-								if ( !intersects.length ) return;
-								debugMode && console.log( "hits:", intersects.length );
-								P2.health -= (raycaster.far - intersects[0].distance); // (...)/10; or (...)/100;
-
-							})();
-
-						} // end swordRaycaster()
-
-					}); // end watch().
-
-
-				}); // end setTimeout().
-
-			})();
 
 		</script>
 
@@ -1171,6 +907,16 @@
 
 					//	create animation controller.
 					var animationController = new MW.AnimationController( player );
+
+					//	experimental.
+					animationController.queue = [];
+					animationController.mixer.addEventListener("play next", function(){
+						debugMode && console.log("play next");
+						if ( animationController.queue.length == 0 ) {
+							animationController.play( "idling" ); return;
+						}
+						animationController.play( animationController.queue.shift() );
+					});
 
 					//	bind animations.
 					(function( select ){

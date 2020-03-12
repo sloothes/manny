@@ -733,7 +733,7 @@
 
 				});
 
-				setTimeout(function(){
+				(function(){
 					var filename = "A Roundhouse Kick To The Side Of An Opponent.fbx";
 					var loader = new THREE.FBXLoader();
 					loader.load( escape("/manny/animations/kick/"+filename), function( group ){
@@ -744,7 +744,7 @@
 						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
 						AddActionButton( clip );
 					});
-				});
+				})();
 
 
 				function AddActionButton( clip ){

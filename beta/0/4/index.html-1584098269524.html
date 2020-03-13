@@ -96,7 +96,7 @@
 
 		<script>
 
-			const debugMode = false; // important!
+			const debugMode = true; // important!
 			MW.install( THREE ); // important!
 
 		//	CameraControls.install( {THREE:THREE} ); // demo!
@@ -362,12 +362,7 @@
 					if ( key ) return players[ key ].animationController;
 					return players[ this.value ].animationController;
 				};
-
-				select.getSkeletonHelper = function( key ){
-					if ( key ) return players[ key ].skeletonHelper;
-					return players[ this.value ].skeletonHelper;
-				};
-
+				
 				select.addMotion = function( name, clip ){
 					for ( var key in players ) {
 						if ( !( key && players[key] ) ) return;
@@ -694,8 +689,6 @@
 
 		//	Game tab.
 
-			isFighting = false;
-
 			(function(){
 
 			//	Action buttons container.
@@ -713,7 +706,7 @@
 
 			(function(){
 
-				var swordfiles = [
+				var filenames = [
 					"great sword slash.fbx",
 					"great sword slash (2).fbx",
 					"great sword slash (3).fbx",
@@ -721,7 +714,7 @@
 					"great sword slash (5).fbx",
 				];
 
-				swordfiles.forEach( function( filename ){
+				filenames.forEach(function( filename ){
 					var loader = new THREE.FBXLoader();
 					loader.load( escape("/manny/animations/sword/"+filename), function( group ){
 						if ( !( group.animations && group.animations.length ) ) return;
@@ -729,31 +722,13 @@
 						var clip = group.animations[0];
 						clip.name = filename.replace(".fbx", "");
 					//	debugMode && console.log( clip );
+
 						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
 
 						AddActionButton( clip );
 
 					});
-				});
-				
-				var kickfiles = [
-					"A Roundhouse Kick To The Side Of An Opponent.fbx",
-					"Aerial 360 Degree Front Side Rotation Kick With Rear Foot.fbx",
-				];
 
-				kickfiles.forEach(function( filename ){
-					var loader = new THREE.FBXLoader();
-					loader.load( escape("/manny/animations/kick/"+filename), function( group ){
-						if ( !( group.animations && group.animations.length ) ) return;
-
-						var clip = group.animations[0];
-						clip.name = filename.replace(".fbx", "");
-						//	debugMode && console.log( clip );
-						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
-
-						AddActionButton( clip );
-
-					});
 				});
 
 				function AddActionButton( clip ){
@@ -775,82 +750,12 @@
 
 						var timeout = parseInt( clip.duration * 1000 ); // clip duration in msec.
 
-					//	button.removeEventListener( "click", actionHandler );
-					//	setTimeout( function(){ 
-					//		button.addEventListener( "click", actionHandler ); 
-					//	}, timeout);
-
-
-						if ( !animationController.queue ) {
-							animationController.play( clip.name );
-							animationController.motion[ clip.name ].reset();
-							return;
-						}
-
-						if ( animationController.queue ) {
-
-							if (!animationController.queue.length) setTimeout( function(){
-								animationController.mixer.dispatchEvent({type:"play next"});
-							}, timeout);
-
-							animationController.queue.push( action );
-						}
-
-						function action(){
-							var requestAnimationFrameID; // important!
-							animationController.play( clip.name );
-							animationController.motion[ clip.name ].reset();
-							var clock = new THREE.Clock();
-							(function update(){
-								requestAnimationFrameID = requestAnimationFrame( update );
-								//	debugMode && console.log( clock.getElapsedTime() );
-								if ( clock.getElapsedTime() < clip.duration ) return;
-								cancelAnimationFrame( requestAnimationFrameID );
-								animationController.mixer.dispatchEvent({type:"play next"});
-							})();
-						}
-
-					});
-				}
-
-			})();
-
-		</script>
-
-		<script>
-/*
-			setTimeout(function(){
-				var filename = "RoundhouseKickToSide.fbx";
-				var loader = new THREE.FBXLoader();
-				loader.load( "/manny/animations/kick/"+filename, function( group ){
-					if ( !( group.animations && group.animations.length ) ) return;
-					var clip = group.animations[0];
-					clip.name = filename.replace(".fbx", "");
-					//	debugMode && console.log( clip );
-					document.getElementById("animation-droplist").addAnimation( clip.name, clip );
-
-				//	AddActionButton( clip );
-
-					var button = document.createElement("div");
-					button.id = button.title = clip.name;
-					button.classList.add("btn", "btn-white-outline", "btn-action");
-					button.style.cssText = "background-size:contain;"
-					+ "background-image:url('/manny/animations/thumbs/"+clip.name+".png');";
-					document.getElementById("action-buttons").appendChild( button );
-
-					button.addEventListener( "click", function actionHandler(){
-
-						var select = document.getElementById("players-droplist");
-						var animationController = select.getAnimationController( currentPlayer );
-						if ( !( select && animationController && animationController.motion[clip.name] ) ) return;
-
-					//	var timeout = parseInt( clip.duration * 1000 );
-
-					//	button interval for first click.
+					//	button interval.
 						button.removeEventListener( "click", actionHandler );
 						setTimeout( function(){ 
 							button.addEventListener( "click", actionHandler ); 
 						}, 500); // or timeout.
+
 
 						if ( !animationController.queue ) {
 							animationController.play( clip.name );
@@ -882,17 +787,67 @@
 						}
 
 					});
+				}
+
+			})();
+
+			setTimeout(function(){
+				var filename = "RoundhouseKickToSide.fbx";
+				var loader = new THREE.FBXLoader();
+				loader.load( "/manny/animations/kick/"+filename, function( group ){
+					if ( !( group.animations && group.animations.length ) ) return;
+					var clip = group.animations[0];
+					clip.name = filename.replace(".fbx", "");
+					//	debugMode && console.log( clip );
+					document.getElementById("animation-droplist").addAnimation( clip.name, clip );
+
+				//	AddActionButton( clip );
+					var interval;
+					var button = document.createElement("div");
+					button.id = button.title = clip.name;
+					button.classList.add("btn", "btn-white-outline", "btn-action");
+					button.style.cssText = "background-size:contain;"
+					+ "background-image:url('/manny/animations/thumbs/"+clip.name+".png');";
+					document.getElementById("action-buttons").appendChild( button );
+
+					button.addEventListener( "click", function actionHandler(){
+
+						var select = document.getElementById("players-droplist");
+						var animationController = select.getAnimationController( currentPlayer );
+						if ( !( select && animationController && animationController.motion[clip.name] ) ) return;
+
+					//	var timeout = parseInt( clip.duration * 1000 );
+						button.removeEventListener( "click", actionHandler );
+
+						animationController.motion[ clip.name ].reset();
+						animationController.play( clip.name );
+
+						var requestAnimationFrameID;
+						var clock = new THREE.Clock();
+						(function update(){
+							requestAnimationFrameID = requestAnimationFrame( update );
+						//	debugMode && console.log( clock.getElapsedTime() );
+							if ( clock.getElapsedTime() > clip.duration ) {
+								cancelAnimationFrame( requestAnimationFrameID );
+								button.addEventListener( "click", actionHandler ); 
+								animationController.play( "idling" ); 
+								return; 
+							}
+						})();
+
+					});
 
 				});
 			});
-*/
+
+
 
 		</script>
 
 		<script>
 
 		//	New game.
-			
+
 			(function(){
 
 				var intersectHead = new THREE.Mesh(
@@ -1055,14 +1010,9 @@
 						var player2 = scene.getObjectByName( "player2" );
 
 						var playersDroplist = document.getElementById("players-droplist");
-
-						var skeletonHelper1 = playersDroplist.getSkeletonHelper("player1");
-						var skeletonHelper2 = playersDroplist.getSkeletonHelper("player2");
-
 						var animationController1 = playersDroplist.getAnimationController("player1");
 						var animationController2 = playersDroplist.getAnimationController("player2");
 						animationController1.play("idling" ); animationController2.play( "idling" ); 
-
 
 						if ( value ) { 
 							P1.appendBar();  P2.appendBar();  // important!
@@ -1149,10 +1099,6 @@
 						}
 
 
-						if ( debugMode ) { player1.visible = player2.visible = !isFighting; }
-						if ( debugMode ) { skeletonHelper1.visible = skeletonHelper2.visible = isFighting; }
-
-
 						function updatePointObjects( name, p ){
 
 							var requestAnimationFrameID;
@@ -1200,7 +1146,7 @@
 							var far = 9;
 							var origin = new THREE.Vector3();
 							var direction = new THREE.Vector3();
-							var intersectObjects = [P2.intersectHead]; // , P2.intersectBody];
+							var intersectObjects = [P2.intersectHead, P2.intersectBody];
 							
 						//	scene.add(P2.intersectHead, P2.intersectBody);
 
@@ -1215,22 +1161,11 @@
 							raycaster.far = far;
 							raycaster.ray.set( origin, direction );
 
-						//	Arrow helper.
-							if (debugMode) {
-								var arrow = new THREE.ArrowHelper( raycaster.ray.direction, raycaster.ray.origin, raycaster.far );
-								scene.add( arrow );
-							}
-
 							(function update(){
 								requestAnimationFrameID = requestAnimationFrame( update );
 
 								if ( !isFighting ) { 
 									cancelAnimationFrame( requestAnimationFrameID ); 
-									if ( debugMode ) {
-										scene.remove( arrow ); 
-										arrow.line.geometry.dispose(); arrow.line.material.dispose();
-										arrow.cone.geometry.dispose(); arrow.cone.material.dispose();
-									}
 									return; 
 								}
 
@@ -1241,11 +1176,6 @@
 								).normalize();  // must be noramlized!
 
 								raycaster.ray.set( origin, direction );
-
-								if ( debugMode ) {
-									arrow.position.copy( raycaster.ray.origin );
-									arrow.setDirection( raycaster.ray.direction  );
-								}
 
 								var intersects = raycaster.intersectObjects( intersectObjects );
 								if ( !intersects.length ) return;
@@ -1264,7 +1194,7 @@
 
 							var origin = new THREE.Vector3();
 							var direction = new THREE.Vector3();
-							var intersectObjects = [P2.intersectHead]; // , P2.intersectBody];
+							var intersectObjects = [P2.intersectHead, P2.intersectBody];
 
 							origin.copy( P1.RightFoot.position );
 							direction.subVectors(
@@ -1278,21 +1208,17 @@
 							raycaster.ray.set( origin, direction );
 
 						//	Arrow helper.
-							if (debugMode) {
-								var arrow = new THREE.ArrowHelper( raycaster.ray.direction, raycaster.ray.origin, raycaster.far );
-								scene.add( arrow );
-							}
+							var arrow = new THREE.ArrowHelper( raycaster.ray.direction, raycaster.ray.origin, raycaster.far );
+							debugMode && scene.add( arrow );
 
 							(function update(){
 								requestAnimationFrameID = requestAnimationFrame( update );
 
 								if ( !isFighting ) { 
 									cancelAnimationFrame( requestAnimationFrameID ); 
-									if ( debugMode ) {
-										scene.remove( arrow ); 
-										arrow.line.geometry.dispose(); arrow.line.material.dispose();
-										arrow.cone.geometry.dispose(); arrow.cone.material.dispose();
-									}
+									debugMode && scene.remove( arrow ); 
+									arrow.line.geometry.dispose(); arrow.line.material.dispose();
+									arrow.cone.geometry.dispose(); arrow.cone.material.dispose();
 									return; 
 								}
 
@@ -1304,10 +1230,8 @@
 
 								raycaster.ray.set( origin, direction );
 
-								if ( debugMode ) {
-									arrow.position.copy( raycaster.ray.origin );
-									arrow.setDirection( raycaster.ray.direction  );
-								}
+								debugMode && arrow.position.copy( raycaster.ray.origin );
+								debugMode && arrow.setDirection( raycaster.ray.direction  );
 
 								var intersects = raycaster.intersectObjects( intersectObjects );
 								if ( !intersects.length ) return;
@@ -1441,20 +1365,6 @@
 					//	create animation controller.
 					var animationController = new MW.AnimationController( player );
 
-					//	action queue.
-
-					animationController.queue = []; // important!
-
-					(function(){
-						var mixer = animationController.mixer;
-						mixer.addEventListener("play next", function(){
-							if ( !isFighting ) return;
-							var queue = animationController.queue;
-							if ( queue.length ) queue.shift().call();
-							else animationController.play("idling");
-						});
-					})();
-
 					//	bind animations.
 					(function( select ){
 						var mixer = animationController.mixer; 
@@ -1463,6 +1373,18 @@
 							animationController.motion[ clip.name ] = mixer.clipAction( clip, object );
 						});
 					})( document.getElementById("animation-droplist") );
+
+					//	action queue list.
+					animationController.queue = []; // important!
+
+					(function( select ){
+						var mixer = animationController.mixer;
+						mixer.addEventListener("play next", function(){
+							var queue = animationController.queue;
+							if ( queue.length ) queue.shift().call();
+							else animationController.play("idling");
+						});
+					})();
 
 					//	start updating.
 					var clock = new THREE.Clock();
@@ -1487,9 +1409,6 @@
 						};
 						if ( animationController ) {
 							object.animationController = animationController;
-						}
-						if ( helpers.skeletonHelper ) {
-							object.skeletonHelper = helpers.skeletonHelper;
 						}
 						select.addPlayer( player.name, object, true);
 					})( document.getElementById("players-droplist") );
@@ -1624,19 +1543,6 @@
 					//	create animation controller.
 					var animationController = new MW.AnimationController( player );
 
-					//	action queue.
-					animationController.queue = []; // important!
-
-					(function(){
-						var mixer = animationController.mixer;
-						mixer.addEventListener("play next", function(){
-							if ( !isFighting ) return;
-							var queue = animationController.queue;
-							if ( queue.length ) queue.shift().call();
-							else animationController.play("idling");
-						});
-					})();
-
 					//	bind animations.
 					(function( select ){
 						var mixer = animationController.mixer; 
@@ -1669,9 +1575,6 @@
 						};
 						if ( animationController ) {
 							object.animationController = animationController;
-						}
-						if ( helpers.skeletonHelper ) {
-							object.skeletonHelper = helpers.skeletonHelper;
 						}
 						select.addPlayer( player.name, object );
 					})( document.getElementById("players-droplist") );

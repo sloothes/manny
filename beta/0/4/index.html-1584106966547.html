@@ -96,7 +96,7 @@
 
 		<script>
 
-			const debugMode = false; // important!
+			const debugMode = true; // important!
 			MW.install( THREE ); // important!
 
 		//	CameraControls.install( {THREE:THREE} ); // demo!
@@ -713,7 +713,7 @@
 
 			(function(){
 
-				var swordfiles = [
+				var filenames = [
 					"great sword slash.fbx",
 					"great sword slash (2).fbx",
 					"great sword slash (3).fbx",
@@ -721,7 +721,7 @@
 					"great sword slash (5).fbx",
 				];
 
-				swordfiles.forEach( function( filename ){
+				filenames.forEach( function( filename ){
 					var loader = new THREE.FBXLoader();
 					loader.load( escape("/manny/animations/sword/"+filename), function( group ){
 						if ( !( group.animations && group.animations.length ) ) return;
@@ -735,15 +735,11 @@
 
 					});
 				});
-				
-				var kickfiles = [
-					"A Roundhouse Kick To The Side Of An Opponent.fbx",
-					"Aerial 360 Degree Front Side Rotation Kick With Rear Foot.fbx",
-				];
 
-				kickfiles.forEach(function( filename ){
+				setTimeout(function(){
+					var filename = "RoundhouseKickToSide.fbx";
 					var loader = new THREE.FBXLoader();
-					loader.load( escape("/manny/animations/kick/"+filename), function( group ){
+					loader.load( "/manny/animations/kick/"+filename, function( group ){
 						if ( !( group.animations && group.animations.length ) ) return;
 
 						var clip = group.animations[0];
@@ -1200,7 +1196,7 @@
 							var far = 9;
 							var origin = new THREE.Vector3();
 							var direction = new THREE.Vector3();
-							var intersectObjects = [P2.intersectHead]; // , P2.intersectBody];
+							var intersectObjects = [P2.intersectHead, P2.intersectBody];
 							
 						//	scene.add(P2.intersectHead, P2.intersectBody);
 
@@ -1264,7 +1260,7 @@
 
 							var origin = new THREE.Vector3();
 							var direction = new THREE.Vector3();
-							var intersectObjects = [P2.intersectHead]; // , P2.intersectBody];
+							var intersectObjects = [P2.intersectHead, P2.intersectBody];
 
 							origin.copy( P1.RightFoot.position );
 							direction.subVectors(

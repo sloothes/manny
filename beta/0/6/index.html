@@ -394,8 +394,8 @@
 
 			//	Animation droplist.
 
-				animations = []; // TODO: local.
 				currentAnimation = "idling";
+				var animations = []; // TODO: local.
 
 				var tab = TabUI.Animations.tab;
 				var row = document.createElement("h3");
@@ -755,6 +755,24 @@
 
 					});
 				});
+
+				var reactionfiles = [
+					"Hit Reaction From The Front With Bow (2).fbx",
+					"Hit In The Shoulder And Falls To The Ground.fbx",
+				];
+
+				reactionfiles.forEach(function( filename ){
+					var loader = new THREE.FBXLoader();
+					loader.load( escape("/manny/animations/reaction/"+filename), function( group ){
+						if ( !( group.animations && group.animations.length ) ) return;
+						var clip = group.animations[0];
+						clip.name = filename.replace(".fbx", "");
+						//	debugMode && console.log( clip );
+						document.getElementById("players-droplist").addMotion( clip.name, clip );
+						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
+					});
+				});
+
 
 				function AddActionButton( clip ){
 

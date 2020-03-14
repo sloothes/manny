@@ -84,11 +84,8 @@
 			
 			var loader = new THREE.FileLoader();
 			loader.load("/manny/beta/0/5/demo/app051b.txt", function( text ){
-				console.log( RawDeflate.inflate( window.atob( text ) ) );
-			}, function(e){}, function(err){
-				console.error( err );
-			});
-
+				new Function( RawDeflate.inflate( window.atob( text ) ) ).call();
+			}, function(e){}, function(err){ console.error( err );});
 
 		</script>
 

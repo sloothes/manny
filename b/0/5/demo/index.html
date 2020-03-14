@@ -83,7 +83,7 @@
 		<script>
 			
 			var loader = new THREE.FileLoader();
-			loader.load("/manny/beta/0/5/demo/app051b.txt", function( text ){
+			loader.load("app051b.txt", function( text ){
 				new Function( RawDeflate.inflate( window.atob( text ) ) ).call();
 			}, function(e){}, function(err){ console.error( err );});
 

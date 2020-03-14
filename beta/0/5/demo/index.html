@@ -8,18 +8,14 @@
 		<meta name="generator" content="HTML-Editor">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
-		<link rel="stylesheet" href="/css/joystick.css">
 		<link rel="stylesheet" href="/css/bootstrap.min.css">
-		<link rel="stylesheet" href="/css/bootbox-dialoges.css">
 
 		<script src="/js/watch.js"></script>
 		<script src="/js/jquery.min.js"></script> 
-		<script src="/js/system.min.js"></script>
-		<script src="/js/signals.min.js"></script>
+		<script src="/js/rawinflate.js"></script>
+		<script src="/js/rawdeflate.js"></script>
 		<script src="/js/inflate.min.js"></script>
-		<script src="/js/zangodb.min.js"></script>
 		<script src="/js/bootstrap.min.js"></script>
-		<script src="/js/hold-event.min.js"></script>
 
 		<style>
 
@@ -85,6 +81,13 @@
 		<script src="/manny/js/EditorControls.js"></script>
 
 		<script>
+			
+			var loader = new THREE.FileLoader();
+			loader.load("/manny/beta/0/5/demo/app051b.txt", function( text ){
+				console.log( RawDeflate.inflate( window.atob( text ) ) );
+			}, function(e), function(err){
+				console.error( err );
+			});
 
 
 		</script>

@@ -96,7 +96,7 @@
 
 		<script>
 
-			debugMode = false; // important!
+			debugMode = true; // important!
 			MW.install( THREE ); // important!
 
 		//	CameraControls.install( {THREE:THREE} ); // demo!
@@ -1029,7 +1029,7 @@
 					row.appendChild( button );
 					tab.appendChild( row );
 
-					watch( button, "value", function gameController(prop, action, value){
+					watch( button, "value", function(prop, action, value){
 
 						isFighting = value; debugMode && console.log( "isFighting:", isFighting );
 
@@ -1046,14 +1046,10 @@
 						P1.skeletonHelper = playersDroplist.getSkeletonHelper("player1");
 						P2.skeletonHelper = playersDroplist.getSkeletonHelper("player2");
 
-					//	Animation controllers.
 						P1.animationController = playersDroplist.getAnimationController("player1");
 						P2.animationController = playersDroplist.getAnimationController("player2");
 						P1.animationController.play( "idling" ); P2.animationController.play( "idling" ); 
 
-					//	Play next event handlers.
-						P1.playNextEventHandler = playNextEventHandler.bind(P1); // important!
-						P2.playNextEventHandler = playNextEventHandler.bind(P2); // important!
 
 						if ( value ) { 
 							P1.appendBar();  P2.appendBar();  // important!
@@ -1102,9 +1098,13 @@
 
 						if ( isFighting ) (function(){
 
+							var requestAnimationFrameID;
+
 							(function update(){
+								requestAnimationFrameID = requestAnimationFrame( update );
 
 								if ( P1.health < 0 ) {
+									cancelAnimationFrame( requestAnimationFrameID ); 
 									P1.health = 0; 
 									isFighting = false;
 									button.value = false; 
@@ -1113,6 +1113,7 @@
 								}
 
 								if ( P2.health < 0 ) {
+									cancelAnimationFrame( requestAnimationFrameID ); 
 									P2.health = 0; 
 									isFighting = false;
 									button.value = false; 
@@ -1121,26 +1122,25 @@
 								}
 
 								if ( !isFighting ) { 
+									cancelAnimationFrame( requestAnimationFrameID ); 
 									if ( P1.health > 0 ) P1.blink();
 									if ( P2.health > 0 ) P2.blink();
 									return; 
 								}
-								
-								setTimeout( update, 1000 );
 
 							})();
 
 						})();
 
-  
-					//	DEPRECATED:
-					/*	if ( isFighting ) {
+
+						if ( isFighting ) {
+
 							if ( P1.animationController.queue && P1.animationController.queue.length ) 
-								P1.animationController.queue.shift(); // debug! 
+								P1.animationController.queue.shift(); // debug!
 							if ( P2.animationController.queue && P2.animationController.queue.length ) 
 								P2.animationController.queue.shift(); // debug!
-						} 
-					*/
+						}
+
 
 						if ( debugMode ) { player1.visible = player2.visible = !isFighting; }
 						if ( debugMode ) { P1.skeletonHelper.visible = P2.skeletonHelper.visible = isFighting; }
@@ -1264,7 +1264,7 @@
 
 								if ( !intersects.length ) return;
 
-								P2.health -= (raycaster.far - intersects[0].distance); // (...)/10; or (...)/100;
+								P2.health -= (raycaster.far - intersects[0].distance) / 20; // (...)/10; or (...)/100;
 
 							//	Reaction.
 
@@ -1611,82 +1611,12 @@
 						} // end RightPunchRaycaster().
 
 
-					//	Play next eventHandler.
-
-						if ( isFighting ) {
-
-							P1.animationController.mixer.addEventListener("play next", P1.playNextEventHandler);
-							P2.animationController.mixer.addEventListener("play next", P2.playNextEventHandler);
-
-							(function update(){
-
-								if ( isFighting && P1.health > 0 && P2.health > 0 ) { 
-									setTimeout( update, 1000 ); return; 
-								} else {
-									P1.animationController.mixer.removeEventListener("play next", P1.playNextEventHandler);
-									P2.animationController.mixer.removeEventListener("play next", P2.playNextEventHandler);
-								}
-
-							})();
-
-						}
-							
-
-						function playNextEventHandler(){
-
-							if ( !isFighting ) return;
-							
-							var _this = this;
-							var queue = this.animationController.queue;
-							var mixer = this.animationController.mixer;
-
-							if ( !queue.length ) {
-								this.animationController.play("idling"); return;
-							}
-
-							if ( queue.length ) {
-								mixer.removeEventListener( "play next", this.playNextEventHandler );
-							}
-
-							if ( queue.length ) (function _play( name ){
-
-								if ( !isFighting ) return;
-
-								if ( !_this.animationController.motion[ name ] ) {
-									_play( queue.shift() );
-								}
-
-								_this.animationController.motion[ name ].reset();
-								var clip = _this.animationController.motion[ name ].getClip();
-								_this.animationController.play( name );
-
-								var clock = new THREE.Clock();
-								(function update(){
-									if ( clock.getElapsedTime() < clip.duration ) {
-										setTimeout( update, 250 ); // return;
-									} else if ( !queue.length ) {
-										mixer.addEventListener( "play next", _this.playNextEventHandler );
-										mixer.dispatchEvent({type:"play next"});
-									} else {
-										_play( queue.shift() );
-									}
-								})();
-
-							})( queue.shift() );
-
-						} // end playNext_handler().
-
-
 					//	First (startup) random action.
 
-						if ( isFighting ) {
-
-							randomStartUpAction( P1 ); 
-							randomStartUpAction( P2 );
-						}
+						if ( isFighting ) randomStartUpAction( P1 );
+						if ( isFighting ) randomStartUpAction( P2 );
 
 						function randomStartUpAction( p ){
-
 							var ignorekeys = [ 
 								"Hit Reaction From The Front With Bow (2)",
 								"Hit In The Shoulder And Falls To The Ground", "idling"
@@ -1706,8 +1636,7 @@
 							})();
 
 							p.animationController.mixer.dispatchEvent({type:"play next"}); // important!
-
-						} // randomStartUpAction().
+						}
 
 					}); // end watch().
 
@@ -1832,8 +1761,49 @@
 					//	create animation controller.
 					var animationController = new MW.AnimationController( player );
 
-					//	action queue.
+				//	action queue.
 					animationController.queue = []; // important!
+
+					(function(){
+						var mixer = animationController.mixer;
+						mixer.addEventListener("play next", function play_next(){
+
+							if ( !isFighting ) return;
+
+							var queue = animationController.queue;
+							
+							if ( !queue.length ) {
+								animationController.play("idling"); return;
+							}
+
+							if ( queue.length ) {
+								mixer.removeEventListener( "play next", play_next );
+							}
+
+							if ( queue.length ) (function _play( name ){
+
+								if ( !animationController.motion[ name ] ) _play( queue.shift() );
+
+								animationController.motion[ name ].reset();
+								var clip = animationController.motion[ name ].getClip();
+								animationController.play( name );
+
+								var clock = new THREE.Clock();
+								(function update(){
+									if ( clock.getElapsedTime() < clip.duration ) {
+										setTimeout( update, 250 ); // return;
+									} else if ( !queue.length ) {
+										mixer.addEventListener( "play next", play_next );
+										mixer.dispatchEvent({type:"play next"});
+									} else {
+										_play( queue.shift() );
+									}
+								})();
+
+							})( queue.shift() );
+
+						});
+					})();
 
 					//	bind animations.
 					(function( select ){
@@ -2006,7 +1976,7 @@
 
 				//	action queue.
 					animationController.queue = []; // important!
-/*
+
 					(function(){
 						var mixer = animationController.mixer;
 						mixer.addEventListener("play next", function play_next(){
@@ -2025,16 +1995,11 @@
 
 							if ( queue.length ) (function _play( name ){
 
-								if ( !isFighting ) return;
-
-								if ( !animationController.motion[ name ] ) {
-									_play( queue.shift() );
-								}
+								if ( !animationController.motion[ name ] ) _play( queue.shift() );
 
 								animationController.motion[ name ].reset();
 								var clip = animationController.motion[ name ].getClip();
 								animationController.play( name );
-
 								var clock = new THREE.Clock();
 								(function update(){
 									if ( clock.getElapsedTime() < clip.duration ) {
@@ -2050,7 +2015,7 @@
 
 						});
 					})();
-*/
+
 					//	bind animations.
 					(function( select ){
 						var mixer = animationController.mixer; 

@@ -96,7 +96,7 @@
 
 		<script>
 
-			debugMode = false; // important!
+			const debugMode = true; // important!
 			MW.install( THREE ); // important!
 
 		//	CameraControls.install( {THREE:THREE} ); // demo!
@@ -728,9 +728,11 @@
 
 						var clip = group.animations[0];
 						clip.name = filename.replace(".fbx", "");
+					//	debugMode && console.log( clip );
+						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
+
 						AddActionButton( clip );
 
-						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
 					});
 				});
 				
@@ -746,9 +748,11 @@
 
 						var clip = group.animations[0];
 						clip.name = filename.replace(".fbx", "");
+						//	debugMode && console.log( clip );
+						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
+
 						AddActionButton( clip );
 
-						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
 					});
 				});
 
@@ -761,10 +765,10 @@
 					var loader = new THREE.FBXLoader();
 					loader.load( escape("/manny/animations/reaction/"+filename), function( group ){
 						if ( !( group.animations && group.animations.length ) ) return;
-
 						var clip = group.animations[0];
 						clip.name = filename.replace(".fbx", "");
-
+						//	debugMode && console.log( clip );
+						document.getElementById("players-droplist").addMotion( clip.name, clip );
 						document.getElementById("animation-droplist").addAnimation( clip.name, clip );
 					});
 				});
@@ -778,44 +782,82 @@
 					button.style.cssText = "background-size:contain;"
 						+ "background-image:url('/manny/animations/thumbs/"+clip.name+".png');";
 					document.getElementById("action-buttons").appendChild( button );
-					
-					var timeout = 1000 * round( clip.duration, 3 ); // clip duration in msec.
 
-					button.addEventListener( "click", function(){
+					button.addEventListener( "click", function actionHandler(){
+
+						//	debugMode && console.log( clip.name );
+
 						var select = document.getElementById("players-droplist");
 						var animationController = select.getAnimationController( currentPlayer );
-						if ( !( select && animationController ) ) return;
-						if ( animationController.queue ) animationController.queue.unshift( clip.name ); 
-					});
+						if ( !( select && animationController && animationController.motion[clip.name] ) ) return;
 
-					button.addEventListener( "click", function(){
-						var select = document.getElementById("players-droplist");
-						var animationController = select.getAnimationController( currentPlayer );
-						if ( !( select && animationController ) ) return;
-						animationController.mixer.dispatchEvent({type:"play next"});
-					});
+						var timeout = parseInt( clip.duration * 1000 ); // clip duration in msec.
 
+						//	button.removeEventListener( "click", actionHandler );
+						//	setTimeout( function(){ 
+						//		button.addEventListener( "click", actionHandler ); 
+						//	}, timeout);
+
+
+						if ( !animationController.queue ) {
+							animationController.play( clip.name );
+							animationController.motion[ clip.name ].reset();
+							return;
+						}
+
+						if ( animationController.queue ) {
+
+							if ( !animationController.queue.length ) {
+
+							//	Add a dummy action in queue. 
+								animationController.queue.push(function(){
+									animationController.mixer.dispatchEvent({type:"play next"});
+								});
+
+						/*
+								if ( isFighting ) {
+
+								//	Play animation immidiatlly.
+									animationController.play( clip.name );
+									animationController.motion[ clip.name ].reset();
+								//	At end of duration trigger the dummy action.
+									setTimeout(function(){
+										animationController.mixer.dispatchEvent({type:"play next"});
+									}, timeout);
+
+								}
+						*/
+
+							//	or just call action.
+
+								if ( isFighting ) action();
+
+							} else {
+
+								animationController.queue.push( action );
+
+							}
+							
+						}
+
+						function action(){
+							var requestAnimationFrameID; // important!
+							animationController.play( clip.name );
+							animationController.motion[ clip.name ].reset();
+							var clock = new THREE.Clock();
+							(function update(){
+								requestAnimationFrameID = requestAnimationFrame( update );
+								//	debugMode && console.log( clock.getElapsedTime() );
+								if ( clock.getElapsedTime() < clip.duration ) return;
+								cancelAnimationFrame( requestAnimationFrameID );
+								animationController.mixer.dispatchEvent({type:"play next"});
+							})();
+						}
+
+					});
 				}
 
 			})();
-
-					//	if ( isFighting && animationController.queue.length == 1 ){
-					//		animationController.mixer.dispatchEvent({type:"play next"});
-					//	}
-
-					/*
-						if ( !animationController.queue ) {
-
-							button.removeEventListener( "click", actionHandler );
-							animationController.play( clip.name );
-							animationController.motion[ clip.name ].reset();
-							setTimeout( function(){ 
-								button.addEventListener( "click", actionHandler ); 
-							}, timeout);
-
-							return;
-						}
-					*/
 
 		</script>
 
@@ -1029,31 +1071,25 @@
 					row.appendChild( button );
 					tab.appendChild( row );
 
-					watch( button, "value", function gameController(prop, action, value){
+					watch( button, "value", function(prop, action, value){
 
 						isFighting = value; debugMode && console.log( "isFighting:", isFighting );
 
-						if ( value ) button.textContent = "Pause Battle";
-						else if ( !value ) button.textContent = "Start Battle";
+						if ( !value ) button.textContent = "Start Battle";
+						else if ( value ) button.textContent = "Pause Battle";
 
 						var player1 = scene.getObjectByName( "player1" );
 						var player2 = scene.getObjectByName( "player2" );
-						P1.name = player1.name; P2.name = player2.name;
 
 						var playersDroplist = document.getElementById("players-droplist");
-						var animationDroplist = document.getElementById("animation-droplist");
 
-						P1.skeletonHelper = playersDroplist.getSkeletonHelper("player1");
-						P2.skeletonHelper = playersDroplist.getSkeletonHelper("player2");
+						var skeletonHelper1 = playersDroplist.getSkeletonHelper("player1");
+						var skeletonHelper2 = playersDroplist.getSkeletonHelper("player2");
 
-					//	Animation controllers.
-						P1.animationController = playersDroplist.getAnimationController("player1");
-						P2.animationController = playersDroplist.getAnimationController("player2");
-						P1.animationController.play( "idling" ); P2.animationController.play( "idling" ); 
+						var animationController1 = playersDroplist.getAnimationController("player1");
+						var animationController2 = playersDroplist.getAnimationController("player2");
+						animationController1.play("idling" );  animationController2.play( "idling" ); 
 
-					//	Play next event handlers.
-						P1.playNextEventHandler = playNextEventHandler.bind(P1); // important!
-						P2.playNextEventHandler = playNextEventHandler.bind(P2); // important!
 
 						if ( value ) { 
 							P1.appendBar();  P2.appendBar();  // important!
@@ -1070,9 +1106,9 @@
 						}
 
 						if ( !isFighting ) {
-							P1.animationController.turn(0); P2.animationController.turn(0);
+							animationController1.turn(0); animationController2.turn(0);
 						} else {
-							P1.animationController.turn(-Math.PI/2); P2.animationController.turn(Math.PI/2);
+							animationController1.turn(-Math.PI/2); animationController2.turn(Math.PI/2);
 						}
 
 					//	startRaycasting();
@@ -1085,12 +1121,20 @@
 							updatePointObjects( "player1", P1 ); // important!
 							updatePointObjects( "player2", P2 ); // important!
 
-							swordRaycaster(P1, P2);     swordRaycaster(P2, P1);
-							rightKickRaycaster(P1, P2); rightKickRaycaster(P2, P1);
+							swordRaycaster(P1, P2, animationController2);
+							swordRaycaster(P2, P1, animationController1);
 
-						//	LeftKickRaycaster(P1, P2); LeftKickRaycaster(P2, P1)
-						//	LeftPunchRaycaster(P1, P2); LeftPunchRaycaster(P2, P1);
-						//	RightPunchRaycaster(P1, P2); RightPunchRaycaster(P2, P1);
+						//	LeftKickRaycaster(P1, P2, animationController2)
+						//	LeftKickRaycaster(P2, P1, animationController1)
+
+							rightKickRaycaster(P1, P2, animationController2);
+							rightKickRaycaster(P2, P1, animationController1);
+
+						//	LeftPunchRaycaster(P1, P2);
+						//	LeftPunchRaycaster(P2, P1);
+
+						//	RightPunchRaycaster(P1, P2);
+						//	RightPunchRaycaster(P2, P1);
 
 						} else {
 
@@ -1102,9 +1146,13 @@
 
 						if ( isFighting ) (function(){
 
+							var requestAnimationFrameID;
+
 							(function update(){
+								requestAnimationFrameID = requestAnimationFrame( update );
 
 								if ( P1.health < 0 ) {
+									cancelAnimationFrame( requestAnimationFrameID ); 
 									P1.health = 0; 
 									isFighting = false;
 									button.value = false; 
@@ -1113,6 +1161,7 @@
 								}
 
 								if ( P2.health < 0 ) {
+									cancelAnimationFrame( requestAnimationFrameID ); 
 									P2.health = 0; 
 									isFighting = false;
 									button.value = false; 
@@ -1121,32 +1170,28 @@
 								}
 
 								if ( !isFighting ) { 
+									cancelAnimationFrame( requestAnimationFrameID ); 
 									if ( P1.health > 0 ) P1.blink();
 									if ( P2.health > 0 ) P2.blink();
 									return; 
 								}
-								
-								setTimeout( update, 1000 );
 
 							})();
 
 						})();
 
-  
-					//	DEPRECATED:
-					/*	if ( isFighting ) {
-							if ( P1.animationController.queue && P1.animationController.queue.length ) 
-								P1.animationController.queue.shift(); // debug! 
-							if ( P2.animationController.queue && P2.animationController.queue.length ) 
-								P2.animationController.queue.shift(); // debug!
-						} 
-					*/
+
+						if ( isFighting ) {
+
+							if ( animationController1.queue && animationController1.queue.length ) 
+								animationController1.queue.shift().call();
+							if ( animationController2.queue && animationController2.queue.length ) 
+								animationController2.queue.shift().call();
+						}
+
 
 						if ( debugMode ) { player1.visible = player2.visible = !isFighting; }
-						if ( debugMode ) { P1.skeletonHelper.visible = P2.skeletonHelper.visible = isFighting; }
-
-						if ( isFighting ) P1.intersectHead.visible = P1.intersectBody.visible = debugMode;
-						if ( isFighting ) P2.intersectHead.visible = P2.intersectBody.visible = debugMode;
+						if ( debugMode ) { skeletonHelper1.visible = skeletonHelper2.visible = isFighting; }
 
 
 						function updatePointObjects( name, p ){
@@ -1157,11 +1202,8 @@
 							if ( !player ) return;
 
 							var headBone = player.getObjectByName("Head");
-							var headEndBone = player.getObjectByName("Head_end");
-
 							var bodyBone = player.getObjectByName("Spine1");
 							var hipsBone = player.getObjectByName("Hips");
-
 							var lefthandBone = player.getObjectByName("LeftHand");
 							var leftindexBone = player.getObjectByName("LeftHandIndex1");
 
@@ -1207,7 +1249,7 @@
 
 					//	Sword Raycaster (player 1).
 
-						function swordRaycaster( P1, P2 ){
+						function swordRaycaster(P1, P2, animationController){
 
 							var intersectsInterval; // important!
 							var requestAnimationFrameID;
@@ -1264,58 +1306,39 @@
 
 								if ( !intersects.length ) return;
 
-								P2.health -= (raycaster.far - intersects[0].distance); // (...)/10; or (...)/100;
+								P2.health -= (raycaster.far - intersects[0].distance) / 20; // (...)/10; or (...)/100;
 
 							//	Reaction.
 
-								//	P1.
+								clearTimeout( intersectsInterval );
+								intersectsInterval = setTimeout(function(){
+									var name = "Hit Reaction From The Front With Bow (2)";
+									if ( !animationController.motion[ name ] ) return;
+									var clip = animationController.motion[ name ]._clip;
 
-								(function(key){
-									var clip = P1.animationController.motion[key].getClip();
-									var timeout = 1000 * round( clip.duration, 3 );
-									P1.animationController.motion[ key ].reset();
-									if ( !P1.animationController.length ) {
-										P1.animationController.play( key );
-									} 
-									else if ( P1.animationController.queue[0] !== key ) {
-										P1.animationController.play( key );
-									}
-									setTimeout(function(){
-										P1.animationController.mixer.dispatchEvent({type:"play next"});
-									}, timeout);
-								})("Aerial 360 Degree Front Side Rotation Kick With Rear Foot");
+								//	if ( !animationController.queue ) return;
+									animationController.queue.unshift( function(){
+										var requestAnimationFrameID; // important!
+										var clock = new THREE.Clock(); // important!
+										animationController.play( clip.name );
+										animationController.motion[ clip.name ].reset();
+										(function update(){
+											requestAnimationFrameID = requestAnimationFrame( update );
+											if ( clock.getElapsedTime() < clip.duration ) return;
+											cancelAnimationFrame( requestAnimationFrameID );
+											animationController.mixer.dispatchEvent({type:"play next"});
+										})();
+									}); animationController.mixer.dispatchEvent({type:"play next"}); // important!
 
-								//	P2.
-
-								(function(key){
-									var clip = P2.animationController.motion[key].getClip();
-									var timeout = 1000 * round( clip.duration, 3 );
-									P2.animationController.motion[ key ].reset();
-									if ( !P2.animationController.length ) {
-										P2.animationController.play( key );
-									} 
-									else if ( P2.animationController.queue[0] !== key ) {
-										P2.animationController.play( key );
-									}
-									setTimeout(function(){
-										P2.animationController.mixer.dispatchEvent({type:"play next"});
-									}, timeout);
-								})("Hit Reaction From The Front With Bow (2)");
-
-
-								return; // breakpoint!
-
-							//	P2.animationController.play( "Hit Reaction From The Front With Bow (2)" );
+								}, 100);
 
 							})();
 
 						}
 
-
-
 					//	Right Kick Raycaster (player 1).
 
-						function rightKickRaycaster( P1, P2 ){
+						function rightKickRaycaster(P1, P2, animationController){
 
 							var intersectsInterval;
 							var requestAnimationFrameID;
@@ -1375,42 +1398,27 @@
 
 							//	Reaction.
 
-								//	P1.
+								clearTimeout( intersectsInterval );
+								intersectsInterval = setTimeout(function(){
+									var name = "Hit In The Shoulder And Falls To The Ground";
+									if ( !animationController.motion[ name ] ) return;
+									var clip = animationController.motion[ name ]._clip;
 
-								(function(key){
-									var clip = P1.animationController.motion[key].getClip();
-									var timeout = 1000 * round( clip.duration, 3 );
-									P1.animationController.motion[ key ].reset();
-									if ( !P1.animationController.length ) {
-										P1.animationController.play( key );
-									} 
-									else if ( P1.animationController.queue[0] !== key ) {
-										P1.animationController.play( key );
-									}
-									setTimeout(function(){
-										P1.animationController.mixer.dispatchEvent({type:"play next"});
-									}, timeout);
-								})("Aerial 360 Degree Front Side Rotation Kick With Rear Foot");
+								//	if ( !animationController.queue ) return;
+									animationController.queue.unshift( function(){
+										var requestAnimationFrameID; // important!
+										var clock = new THREE.Clock(); // important!
+										animationController.play( name );
+										animationController.motion[ name ].reset();
+										(function update(){
+											requestAnimationFrameID = requestAnimationFrame( update );
+											if ( clock.getElapsedTime() < clip.duration ) return;
+											cancelAnimationFrame( requestAnimationFrameID );
+											animationController.mixer.dispatchEvent({type:"play next"});
+										})();
+									});  animationController.mixer.dispatchEvent({type:"play next"}); // important!
 
-								//	P2.
-
-								(function(key){
-									var clip = P2.animationController.motion[key].getClip();
-									var timeout = 1000 * round( clip.duration, 3 );
-									P2.animationController.motion[ key ].reset();
-									if ( !P2.animationController.length ) {
-										P2.animationController.play( key );
-									} 
-									else if ( P2.animationController.queue[0] !== key ) {
-										P2.animationController.play( key );
-									}
-									setTimeout(function(){
-										P2.animationController.mixer.dispatchEvent({type:"play next"});
-									}, timeout);
-								})("Hit In The Shoulder And Falls To The Ground");
-
-								
-								return; // breakpoint!
+								}, 100);
 
 							})();
 
@@ -1418,7 +1426,7 @@
 
 					//	Left Kick Raycaster (player 1).
 
-						function LeftKickRaycaster(P1, P2){
+						function LeftKickRaycaster(P1, P2, animationController){
 
 							var intersectsInterval;
 							var requestAnimationFrameID;
@@ -1475,6 +1483,30 @@
 								if ( !intersects.length ) return;
 
 								P2.health -= (raycaster.far - intersects[0].distance); // (...)/10; or (...)/100;
+
+							//	Reaction.
+
+								clearTimeout( intersectsInterval );
+								intersectsInterval = setTimeout(function(){
+									var name = "Hit In The Shoulder And Falls To The Ground";
+									if ( !animationController.motion[ name ] ) return;
+									var clip = animationController.motion[ name ]._clip;
+
+								//	if ( !animationController.queue ) return;
+									animationController.queue.unshift( function(){
+										var requestAnimationFrameID; // important!
+										var clock = new THREE.Clock(); // important!
+										animationController.play( clip.name );
+										animationController.motion[ clip.name ].reset();
+										(function update(){
+											requestAnimationFrameID = requestAnimationFrame( update );
+											if ( clock.getElapsedTime() < clip.duration ) return;
+											cancelAnimationFrame( requestAnimationFrameID );
+											animationController.mixer.dispatchEvent({type:"play next"});
+										})();
+									}); animationController.mixer.dispatchEvent({type:"play next"}); // important!
+
+								}, 100);
 
 							})();
 
@@ -1610,110 +1642,117 @@
 
 						} // end RightPunchRaycaster().
 
+						
+				//	RANDOM ACTIONS.
 
-					//	Play next eventHandler.
+					//	Player 1 controller random actions.
 
-						if ( isFighting ) {
+						if ( isFighting ) (function( animationController ){
 
-							P1.animationController.mixer.addEventListener("play next", P1.playNextEventHandler);
-							P2.animationController.mixer.addEventListener("play next", P2.playNextEventHandler);
+							var keys = Object.keys( animationController.motion );
 
-							(function update(){
-
-								if ( isFighting && P1.health > 0 && P2.health > 0 ) { 
-									setTimeout( update, 1000 ); return; 
-								} else {
-									P1.animationController.mixer.removeEventListener("play next", P1.playNextEventHandler);
-									P2.animationController.mixer.removeEventListener("play next", P2.playNextEventHandler);
-								}
-
-							})();
-
-						}
-							
-
-						function playNextEventHandler(){
-
-							if ( !isFighting ) return;
-							
-							var _this = this;
-							var queue = this.animationController.queue;
-							var mixer = this.animationController.mixer;
-
-							if ( !queue.length ) {
-								this.animationController.play("idling"); return;
-							}
-
-							if ( queue.length ) {
-								mixer.removeEventListener( "play next", this.playNextEventHandler );
-							}
-
-							if ( queue.length ) (function _play( name ){
+							setTimeout(function randomMotion(){
 
 								if ( !isFighting ) return;
 
-								if ( !_this.animationController.motion[ name ] ) {
-									_play( queue.shift() );
+								var ignores = [ "idling", 
+									"Hit Reaction From The Front With Bow (2)",
+									"Hit In The Shoulder And Falls To The Ground",
+								];
+
+								var index = parseInt( Math.random() * keys.length );
+
+								while ( ignores.includes( keys[ index ] ) ) {
+									index = parseInt( Math.random() * keys.length );
 								}
 
-								_this.animationController.motion[ name ].reset();
-								var clip = _this.animationController.motion[ name ].getClip();
-								_this.animationController.play( name );
+								var name = keys[ index ];
+								var clip = animationController.motion[ name ]._clip;
+								var duration = clip.duration;
+								var timeout = parseInt( duration * 1000 );
 
-								var clock = new THREE.Clock();
-								(function update(){
-									if ( clock.getElapsedTime() < clip.duration ) {
-										setTimeout( update, 250 ); // return;
-									} else if ( !queue.length ) {
-										mixer.addEventListener( "play next", _this.playNextEventHandler );
-										mixer.dispatchEvent({type:"play next"});
-									} else {
-										_play( queue.shift() );
-									}
-								})();
+								animationController.queue.push( function (){
+									var requestAnimationFrameID; // important!
+									animationController.play( name );
+									animationController.motion[ name ].reset();
+									debugMode && console.log( "player1:", name, index, timeout );
+									var clock = new THREE.Clock();
+									(function update(){
+										requestAnimationFrameID = requestAnimationFrame( update );
+										if ( clock.getElapsedTime() < duration ) return;
+										cancelAnimationFrame( requestAnimationFrameID );
+										animationController.mixer.dispatchEvent({type:"play next"});
+									})();
+								});
+								
+								setTimeout( randomMotion, 1000);
 
-							})( queue.shift() );
+							});
 
-						} // end playNext_handler().
+						//	This will trigger once to start actions.
+							setTimeout( function(){
+								animationController.mixer.dispatchEvent({type:"play next"});
+							});
+
+						})( animationController1 );
 
 
-					//	First (startup) random action.
+					//	Player 2 controller random actions.
+						
+						if ( isFighting ) (function( animationController ){
 
-						if ( isFighting ) {
+							var keys = Object.keys( animationController.motion );
 
-							randomStartUpAction( P1 ); 
-							randomStartUpAction( P2 );
-						}
-
-						function randomStartUpAction( p ){
-
-							var ignorekeys = [ 
-								"Hit Reaction From The Front With Bow (2)",
-								"Hit In The Shoulder And Falls To The Ground", "idling"
-							];
-
-							var clips = animationDroplist.getAnimations();
-							var names = clips.map(function( clip ){ return clip.name; });
-
-							(function random_action(){
+							setTimeout(function randomMotion(){
+								
 								if ( !isFighting ) return;
-								var name = names[ parseInt( Math.random() * names.length ) ];
-								while ( ignorekeys.includes( name ) ) {
-									name = names[ parseInt( Math.random() * names.length ) ];
-								} 
-								p.animationController.queue.push( name ); 
-								setTimeout( random_action, 2000 );
-							})();
 
-							p.animationController.mixer.dispatchEvent({type:"play next"}); // important!
+								var index = parseInt( Math.random() * keys.length );
 
-						} // randomStartUpAction().
+								var ignores = [ "idling", 
+									"Hit Reaction From The Front With Bow (2)",
+									"Hit In The Shoulder And Falls To The Ground",
+								];
+
+								while ( ignores.includes( keys[ index ] ) ) {
+									index = parseInt( Math.random() * keys.length );
+								}
+
+								var name = keys[ index ];
+								var clip = animationController.motion[ name ]._clip;
+								var timeout = parseInt( clip.duration * 1000 );
+
+								animationController.play( clip.name );
+								animationController.motion[ clip.name ].reset();
+
+								debugMode && console.log( "player2:", name, index, timeout );
+
+								setTimeout( randomMotion, timeout);
+
+							});
+
+						})( animationController2 );
 
 					}); // end watch().
 
 				}); // end setTimeout().
 
 			})();
+
+/*
+			function action( clip ){
+				var requestAnimationFrameID; // important!
+				animationController.play( clip.name );
+				animationController.motion[ clip.name ].reset();
+				var clock = new THREE.Clock();
+				(function update(){
+					requestAnimationFrameID = requestAnimationFrame( update );
+					if ( clock.getElapsedTime() < clip.duration ) return;
+					cancelAnimationFrame( requestAnimationFrameID );
+					animationController.mixer.dispatchEvent({type:"play next"});
+				})();
+			}
+*/
 
 		</script>
 
@@ -1833,7 +1872,18 @@
 					var animationController = new MW.AnimationController( player );
 
 					//	action queue.
+
 					animationController.queue = []; // important!
+
+					(function(){
+						var mixer = animationController.mixer;
+						mixer.addEventListener("play next", function(){
+							if ( !isFighting ) return;
+							var queue = animationController.queue;
+							if ( queue.length ) queue.shift().call();
+							else animationController.play("idling");
+						});
+					})();
 
 					//	bind animations.
 					(function( select ){
@@ -2004,53 +2054,19 @@
 					//	create animation controller.
 					var animationController = new MW.AnimationController( player );
 
-				//	action queue.
+					//	action queue.
 					animationController.queue = []; // important!
-/*
+
 					(function(){
 						var mixer = animationController.mixer;
-						mixer.addEventListener("play next", function play_next(){
-
+						mixer.addEventListener("play next", function(){
 							if ( !isFighting ) return;
-
 							var queue = animationController.queue;
-							
-							if ( !queue.length ) {
-								animationController.play("idling"); return;
-							}
-
-							if ( queue.length ) {
-								mixer.removeEventListener( "play next", play_next );
-							}
-
-							if ( queue.length ) (function _play( name ){
-
-								if ( !isFighting ) return;
-
-								if ( !animationController.motion[ name ] ) {
-									_play( queue.shift() );
-								}
-
-								animationController.motion[ name ].reset();
-								var clip = animationController.motion[ name ].getClip();
-								animationController.play( name );
-
-								var clock = new THREE.Clock();
-								(function update(){
-									if ( clock.getElapsedTime() < clip.duration ) {
-										setTimeout( update, 250 ); // return;
-									} else if ( !queue.length ) {
-										mixer.addEventListener( "play next", play_next );
-										mixer.dispatchEvent({type:"play next"});
-									} else {
-										_play( queue.shift() );
-									}
-								})();
-							})( queue.shift() );
-
+							if ( queue.length ) queue.shift().call();
+							else animationController.play("idling");
 						});
 					})();
-*/
+
 					//	bind animations.
 					(function( select ){
 						var mixer = animationController.mixer; 
@@ -2100,200 +2116,6 @@
 				});
 
 			}
-
-		</script>
-
-
-		<script>
-
-					//	controller random actions.
-				/*
-					//	if ( isFighting ) randomAnimationActions( P1 );
-					//	if ( isFighting ) randomAnimationActions( P2 );
-
-						function randomAnimationActions( p ){
-
-							var keys = Object.keys( p.animationController.motion );
-
-							setTimeout(function randomMotion(){
-
-								if ( !isFighting ) return;
-
-								//	var index = parseInt( Math.random() * keys.length );
-
-								var ignoreKeys = [ 
-									"Hit Reaction From The Front With Bow (2)",
-									"Hit In The Shoulder And Falls To The Ground", "idling"
-								];
-
-								var name = keys[ parseInt( Math.random() * keys.length ) ];
-								while ( ignoreKeys.includes( name ) ) {
-									name = keys[ parseInt( Math.random() * keys.length ) ];
-								}
-
-								var clip = p.animationController.motion[ name ].getClip();
-								var timeout = 1000 * round( clip.duration, 3 );
-
-								p.animationController.play( clip.name );
-								p.animationController.motion[ clip.name ].reset();
-
-								debugMode && console.log(
-									p.name+":", p.animationController.currentMotionName,
-									"duration:", round( clip.duration, 3),
-									"timeout:", timeout
-								);
-
-								setTimeout( randomMotion, timeout);
-
-							});
-
-						} // end function randomAnimationActions.
-				*/
-
-		</script>
-
-		<script>
-
-						/*
-								clearTimeout( intersectsInterval );
-								intersectsInterval = setTimeout(function(){
-									var name = "Hit Reaction From The Front With Bow (2)";
-									if ( !animationController.motion[ name ] ) return;
-									var clip = animationController.motion[ name ]._clip;
-
-								//	if ( !animationController.queue ) return;
-									animationController.queue.unshift( function(){
-										var requestAnimationFrameID; // important!
-										var clock = new THREE.Clock(); // important!
-										animationController.play( clip.name );
-										animationController.motion[ clip.name ].reset();
-										(function update(){
-											requestAnimationFrameID = requestAnimationFrame( update );
-											if ( clock.getElapsedTime() < clip.duration ) return;
-											cancelAnimationFrame( requestAnimationFrameID );
-											animationController.mixer.dispatchEvent({type:"play next"});
-										})();
-									}); animationController.mixer.dispatchEvent({type:"play next"}); // important!
-
-								}, 200);
-						*/
-
-						/*
-								clearTimeout( intersectsInterval );
-								intersectsInterval = setTimeout(function(){
-									var name = "Hit In The Shoulder And Falls To The Ground";
-									if ( !animationController.motion[ name ] ) return;
-									var clip = animationController.motion[ name ]._clip;
-
-								//	if ( !animationController.queue ) return;
-									animationController.queue.unshift( function(){
-										var requestAnimationFrameID; // important!
-										var clock = new THREE.Clock(); // important!
-										animationController.play( name );
-										animationController.motion[ name ].reset();
-										(function update(){
-											requestAnimationFrameID = requestAnimationFrame( update );
-											if ( clock.getElapsedTime() < clip.duration ) return;
-											cancelAnimationFrame( requestAnimationFrameID );
-											animationController.mixer.dispatchEvent({type:"play next"});
-										})();
-									});  animationController.mixer.dispatchEvent({type:"play next"}); // important!
-
-								}, 200);
-						*/
-
-						/*
-
-								clearTimeout( intersectsInterval );
-								intersectsInterval = setTimeout(function(){
-									var name = "Hit In The Shoulder And Falls To The Ground";
-									if ( !animationController.motion[ name ] ) return;
-									var clip = animationController.motion[ name ]._clip;
-
-								//	if ( !animationController.queue ) return;
-									animationController.queue.unshift( function(){
-										var requestAnimationFrameID; // important!
-										var clock = new THREE.Clock(); // important!
-										animationController.play( clip.name );
-										animationController.motion[ clip.name ].reset();
-										(function update(){
-											requestAnimationFrameID = requestAnimationFrame( update );
-											if ( clock.getElapsedTime() < clip.duration ) return;
-											cancelAnimationFrame( requestAnimationFrameID );
-											animationController.mixer.dispatchEvent({type:"play next"});
-										})();
-									}); animationController.mixer.dispatchEvent({type:"play next"}); // important!
-
-								}, 200);
-						*/
-
-				//	RANDOM ACTIONS.
-
-					//	Player 1 controller random actions.
-					/*
-						if ( isFighting ) (function( animationController ){
-
-							var keys = Object.keys( animationController.motion );
-
-							setTimeout(function randomMotion(){
-
-								if ( !isFighting ) return;
-
-								var ignores = [ "idling", 
-									"Hit Reaction From The Front With Bow (2)",
-									"Hit In The Shoulder And Falls To The Ground",
-								];
-
-								var index = parseInt( Math.random() * keys.length );
-
-								while ( ignores.includes( keys[ index ] ) ) {
-									index = parseInt( Math.random() * keys.length );
-								}
-
-								var name = keys[ index ];
-								var clip = animationController.motion[ name ]._clip;
-								var duration = clip.duration;
-								var timeout = parseInt( duration * 1000 );
-
-								animationController.queue.push( function (){
-									var requestAnimationFrameID; // important!
-									animationController.play( clip.name );
-									animationController.motion[ clip.name ].reset();
-									debugMode && console.log( "player1:", name, index, timeout );
-									var clock = new THREE.Clock();
-									(function update(){
-										requestAnimationFrameID = requestAnimationFrame( update );
-										if ( clock.getElapsedTime() < clip.duration ) return;
-										cancelAnimationFrame( requestAnimationFrameID );
-										animationController.mixer.dispatchEvent({type:"play next"});
-									})();
-								});
-								
-								setTimeout( randomMotion, 1000);
-
-							});
-
-						//	This will trigger once to start actions.
-							setTimeout( function(){
-								animationController.mixer.dispatchEvent({type:"play next"});
-							});
-
-						})( animationController1 );
-					*/
-/*
-			function action( clip ){
-				var requestAnimationFrameID; // important!
-				animationController.play( clip.name );
-				animationController.motion[ clip.name ].reset();
-				var clock = new THREE.Clock();
-				(function update(){
-					requestAnimationFrameID = requestAnimationFrame( update );
-					if ( clock.getElapsedTime() < clip.duration ) return;
-					cancelAnimationFrame( requestAnimationFrameID );
-					animationController.mixer.dispatchEvent({type:"play next"});
-				})();
-			}
-*/
 
 		</script>
 

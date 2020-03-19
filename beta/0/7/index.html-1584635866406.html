@@ -1160,13 +1160,13 @@
 									P1.animationController.motion[ name ].setLoop(THREE.LoopOnce);
 									P1.animationController.play( name );
 									P1.animationController.motion[ name ].reset();
-								}, 500);
+								}, 1000);
 
 								setTimeout(function(){
 									var name = "great sword slash (4)";
 									P2.animationController.play( name );
 									P2.animationController.motion[ name ].reset();
-								}, 500);
+								}, 2000);
 
 								return; 
 							}
@@ -1183,13 +1183,13 @@
 									P2.animationController.motion[ name ].setLoop(THREE.LoopOnce);
 									P2.animationController.play( name );
 									P1.animationController.motion[ name ].reset();
-								}, 500);
+								}, 1000);
 
 								setTimeout(function(){
 									var name = "great sword slash (4)";
 									P1.animationController.play( name );
 									P1.animationController.motion[ name ].reset();
-								}, 500);
+								}, 2000);
 
 								return; 
 							}
@@ -1642,7 +1642,7 @@
 								p2.animationController.play( reaction );
 								p2.animationController.motion[ reaction ].reset();
 
-							//	cancelAnimationFrame( requestAnimationFrameID );
+								cancelAnimationFrame( requestAnimationFrameID );
 							//	animationController.mixer.dispatchEvent({type:"loop"});
 
 							})();

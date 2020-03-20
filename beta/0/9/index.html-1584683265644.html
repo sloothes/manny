@@ -96,7 +96,7 @@
 
 		<script>
 
-			debugMode = true; // important!
+			const debugMode = false; // important!
 			MW.install( THREE ); // important!
 
 		//	CameraControls.install( {THREE:THREE} ); // demo!
@@ -699,7 +699,7 @@
 						var requestAnimationFrameID; // important!
 						var select = document.getElementById("players-droplist");
 						var animationController = select.getAnimationController( currentPlayer );
-					//	animationController.mixer.dispatchEvent({type:"finished"}); // important?
+						animationController.mixer.dispatchEvent({type:"finished"}); // important?
 
 						if ( isFighting ){
 
@@ -737,20 +737,34 @@
 								if ( !intersects.length ) return;
 
 								cancelAnimationFrame( requestAnimationFrameID ); // important!
+
 								p2.health -= (raycaster.far - intersects[0].distance); // (...)/10; or (...)/100;
+
+								var cameraAnimationFrameID;
+								p2.animationController.mixer.addEventListener( "finished", function reactionEventHandler(e){
+									p2.animationController.mixer.removeEventListener( "finished", reactionEventHandler );
+									cancelAnimationFrame( cameraAnimationFrameID ); // important!
+									camera.lookAt( controls.center.copy( p1.intersectBody.position ) );
+								});
+								
+								(function update(){
+									cameraAnimationFrameID = requestAnimationFrame( update );
+									camera.lookAt( controls.center.copy( p2.intersectBody.position ) );
+								})();
+
 								p2.animationController.play( reaction ); 
 								p2.animationController.motion[ reaction ].reset();
 
 							})();
 
-						} // end if (isFighting)
+						} // end if isFighting.
 
 						animationController.mixer.addEventListener( "finished", function finishedEventHandler(e){
 
 							cancelAnimationFrame( requestAnimationFrameID ); // important!
 
 							setTimeout( function(){ 
-								animationController.mixer.removeEventListener( "finished", finishedEventHandler ); // important!
+								animationController.mixer.removeEventListener( "finished", finishedEventHandler );
 								debugMode && console.log( clip.name, "finished:", e );
 							});
 
@@ -764,8 +778,9 @@
 							animationController.play( "idling" );
 						});
 
-						animationController.play( clip.name ); 
-						animationController.motion[ clip.name ].reset();
+						animationController.play( clip.name ); animationController.motion[ clip.name ].reset();
+
+					//	if ( !isFighting ) animationController.mixer.removeEventListener( "finished", finishedEventHandler );
 
 					});
 
@@ -1223,6 +1238,28 @@
 							} // end onfinishedEventHandler.
 
 						} // end showcase().
+
+
+					//	Camera.
+
+						if ( isFighting ) {
+
+							if ( currentPlayer == "player1" ) {
+								P1.intersectHead.add( camera );
+								camera.lookAt( controls.center.copy( P1.intersectBody.position ) );
+							}
+
+							else if ( currentPlayer == "player2" ) {
+								P2.intersectHead.add( camera );
+								camera.lookAt( controls.center.copy( P2.intersectBody.position ) );
+							}
+
+						} else {
+							
+							scene.add( camera );
+							camera.lookAt( controls.center.copy( scene.position ) );
+
+						}
 
 
 						if ( debugMode ) {

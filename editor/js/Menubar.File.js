@@ -12,7 +12,7 @@ Menubar.File = function ( editor ) {
 
 	}
 
-	//
+//
 
 	var config = editor.config;
 
@@ -28,7 +28,7 @@ Menubar.File = function ( editor ) {
 	options.setClass( 'options' );
 	container.add( options );
 
-	// New
+// New
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -44,11 +44,11 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	//
+//
 
 	options.add( new UI.HorizontalRule() );
 
-	// Import
+// Import
 
 	var form = document.createElement( 'form' );
 	form.style.display = 'none';
@@ -75,11 +75,35 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	//
+//
 
 	options.add( new UI.HorizontalRule() );
 
-	// Export Geometry
+// Save app.json
+
+	var option = new UI.Row();
+	option.setClass( "option" );
+	option.setTextContent( "Save App" );
+	option.onClick( function () {
+
+		var output = editor.toJSON();
+		output.metadata.type = "App";
+		delete output.history;
+
+		output = JSON.stringify( output, parseNumber, "\t" );
+		output = output.replace( /[\n\t]+([\d\.e\-\[\]]+)/g, "$1" );
+
+		saveString( output, "app.json" );
+
+	});
+
+	options.add( option );
+
+//
+
+	options.add( new UI.HorizontalRule() );
+
+// Export Geometry
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -122,7 +146,7 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	// Export Object
+// Export Object
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -156,7 +180,7 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	// Export Scene
+// Export Scene
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -181,11 +205,11 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	//
+//
 
 	options.add( new UI.HorizontalRule() );
 
-	// Export DAE
+// Export DAE
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -223,7 +247,7 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	// Export GLTF
+// Export GLTF
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -242,7 +266,7 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	// Export OBJ
+// Export OBJ
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -265,7 +289,7 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	// Export STL
+// Export STL
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -279,32 +303,11 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	//
+//
 
 	options.add( new UI.HorizontalRule() );
 
-// Save app.json
-
-	var option = new UI.Row();
-	option.setClass( "option" );
-	option.setTextContent( "Save App" );
-	option.onClick( function () {
-
-		var output = editor.toJSON();
-		output.metadata.type = "App";
-		delete output.history;
-
-		output = JSON.stringify( output, parseNumber, "\t" );
-		output = output.replace( /[\n\t]+([\d\.e\-\[\]]+)/g, "$1" );
-
-		saveString( output, "app.json" );
-
-	});
-
-	options.add( option );
-
-
-	// Publish
+// Publish
 
 	var option = new UI.Row();
 	option.setClass( 'option' );
@@ -396,7 +399,7 @@ Menubar.File = function ( editor ) {
 	} );
 	options.add( option );
 
-	//
+//
 
 	var link = document.createElement( 'a' );
 	link.style.display = 'none';

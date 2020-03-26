@@ -62,7 +62,8 @@ Menubar.File = function ( editor ) {
 		editor.loader.loadFiles( fileInput.files );
 		form.reset();
 
-	} );
+	});
+
 	form.appendChild( fileInput );
 
 	var option = new UI.Row();
@@ -72,18 +73,47 @@ Menubar.File = function ( editor ) {
 
 		fileInput.click();
 
-	} );
+	});
+
 	options.add( option );
 
 //
 
 	options.add( new UI.HorizontalRule() );
 
-// Save app.json
+//	Save.
+
+	var timeout;
+	var option = new UI.Row();
+	option.setClass( "option" );
+	option.setTextContent( "Save" );
+	option.onClick( function () {
+
+		clearTimeout( timeout );
+
+		timeout = setTimeout( function () {
+
+			editor.signals.savingStarted.dispatch();
+
+			timeout = setTimeout( function () {
+
+				editor.storage.set( editor.toJSON() );
+
+				editor.signals.savingFinished.dispatch();
+
+			}, 100 );
+
+		}, 1000 );
+
+	});
+
+	options.add( option );
+
+//	Save app.json
 
 	var option = new UI.Row();
 	option.setClass( "option" );
-	option.setTextContent( "Save App" );
+	option.setTextContent( "Save As..." );
 	option.onClick( function () {
 
 		var output = editor.toJSON();

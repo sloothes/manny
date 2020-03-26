@@ -1,0 +1,55 @@
+{
+	"metadata": {
+		"type": "App"
+	},
+	"project": {
+		"gammaInput": true,
+		"gammaOutput": false,
+		"shadows": true,
+		"vr": false
+	},
+	"camera": {
+		"metadata": {
+			"version": 4.5,
+			"type": "Object",
+			"generator": "Object3D.toJSON"
+		},
+		"object": {
+			"uuid": "4F7C0D14-181F-4290-AC1B-35726B54A4D4",
+			"type": "PerspectiveCamera",
+			"name": "Camera",
+			"layers": 1,
+			"matrix": [0.96639,0,-0.257081,0,-0.07318,0.95863,-0.275089,0,0.246445,0.284656,0.92641,0,7.627817,8.8105,28.67368,1],
+			"fov": 50,
+			"zoom": 1,
+			"near": 0.01,
+			"far": 1000,
+			"focus": 10,
+			"aspect": 0.95719,
+			"filmGauge": 35,
+			"filmOffset": 0
+		}
+	},
+	"scene": {
+		"metadata": {
+			"version": 4.5,
+			"type": "Object",
+			"generator": "Object3D.toJSON"
+		},
+		"object": {
+			"uuid": "4A722683-45FD-4FF4-9DA0-C85846BC888F",
+			"type": "Scene",
+			"name": "Scene",
+			"layers": 1,
+			"matrix": [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1],
+			"background": 11184810
+		}
+	},
+	"scripts": {
+		"4A722683-45FD-4FF4-9DA0-C85846BC888F": [
+			{
+				"name": "TabUI.js",
+				"source": "\nTabUI = {};\n\nTabUI.add = function(name, id){\n\n\tvar role, pill, tab;\n\n\trole = document.createElement(\"li\");\n\trole.setAttribute(\"role\", \"presentation\");\n\trole.style.display = \"inline-block\";\n\n\tpill = document.createElement(\"a\");\n\tpill.href = \"#\"+id; // important!\n\tpill.setAttribute(\"data-toggle\", \"pill\");\n\tpill.classList.add(\"pills\",\"right-pill\");\n\tpill.text = name; // pill.innerHTML = name;\n\trole.appendChild( pill );\n\n\ttab = document.createElement(\"li\");\n\ttab.id = id; // important!\n\ttab.classList.add(\"component-pane\",\"tab-pane\",\"fade\");\n\n\t//\tdocument.getElementById(\"side-tab-panel\").appendChild( tab );\n\t//\tdocument.getElementById(\"side-tab-pills\").appendChild( role );\n\n\tthis[ name ] = {\n\t\tid: id,\n\t\ttab: tab,\n\t\trole: role,\n\t\tpill: pill,\n\t\tname: name,\n\t};\n\n\treturn tab;\n\n};\n\nTabUI.append = function(){\n\n\tfor ( var arg in arguments ){\n\n\t\tvar name = arguments[ arg ];\n\n\t\tdocument.getElementById(\"side-tab-panel\").appendChild( this[ name ].tab );\n\t\tdocument.getElementById(\"side-tab-pills\").appendChild( this[ name ].role );\n\n\t}\n};\n\n//\tTODO.\n//\tTabUI.show = function(){};\n//\tTabUI.hide = function(){};\n//\tTabUI.remove = function(){};\n\n\n\nfunction createSidePanel(){\n\n\tvar sidePanel = document.createElement(\"div\");\n\tsidePanel.id = \"side-panel\";\n\tsidePanel.classList.add(\"side-panel\", \"pinned\");\n\tsidePanel.style.cssText = \"position:absolute;top:0;right:0;bottom:0;width:370px;background:rgba(255,255,255,0.9);\"\n\t\t+ \" -webkit-transform:translateX(0px); -webkit-transition:-webkit-transform 500ms ease-out; z-index:9999;\";\n\n\tvar container = document.createElement(\"div\");\n\tcontainer.id = \"side-panel-content\";\n\tcontainer.style.cssText = \"position:absolute;top:20px;left:40px;bottom:20px;right:20px;overflow-x:hidden;\";\n\n\tvar sidePillBar = document.createElement(\"div\");\n\tsidePillBar.id = \"side-pill-bar\";\n\tsidePillBar.classList.add(\"side-holder\");\n\tsidePillBar.style.cssText = \"margin-bottom:20px;\";\n\tcontainer.appendChild( sidePillBar );\n\n\tvar sideTabPills = document.createElement(\"ul\");\n\tsideTabPills.id = \"side-tab-pills\";\n\tsideTabPills.classList.add(\"nav\",\"nav-tabs\",\"nav-pills\");\n\tsideTabPills.style.cssText = \"display:inline-flex!important;overflow-y:hidden;width:300px;scroll-behavior:smooth;\";\n\tsidePillBar.appendChild( sideTabPills );\n\n\tvar sideTabPanel = document.createElement(\"div\");\n\tsideTabPanel.id = \"side-tab-panel\";\n\tsideTabPanel.classList.add(\"tab-content\");\n\tcontainer.appendChild( sideTabPanel );\n\n\tsidePanel.addEventListener( \"mouseenter\", function(){\n\t\treturn; // debug!\n\t\tthis.classList.toggle( \"pinned\", true );\n\t\tthis.style[\"-webkit-transform\"] = \"translateX( 0 )\";\n\t});\n\n\tsidePanel.addEventListener( \"mouseleave\", function(){\n\t\treturn; // debug!\n\t\tthis.classList.toggle( \"pinned\", false );\n\t\tthis.style[\"-webkit-transform\"] = \"translateX( 340px )\";\n\t});\n\n\tsidePanel.appendChild( container );\n\t\n\treturn sidePanel;\n}\n\nfunction createLoadingBar(){\n\n\tvar container = document.createElement(\"div\");\n\tcontainer.id = \"loading-bar\";\n\tcontainer.classList.add(\"middle\");\n\n\tvar progress = document.createElement(\"div\");\n\tprogress.style.width = \"250px\";\n\tprogress.style.height = \"fit-content\";\n\tprogress.classList.add(\"progress\");\n\tcontainer.appendChild( progress );\n\n\tvar bar = document.createElement(\"div\");\n\tbar.style.width = \"100%\";\n\tbar.textContent = \"Loading...\";\n\tbar.setAttribute(\"role\", \"progressbar\");\n\tbar.setAttribute(\"aria-valuemin\", \"0\");\n\tbar.setAttribute(\"aria-valuemax\", \"100\");\n\tbar.classList.add(\"progress-bar\", \"progress-bar-striped\", \"active\");\n\tprogress.appendChild( bar );\n\n\treturn container;\n\n}\n"
+			}]
+	}
+}

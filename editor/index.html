@@ -190,6 +190,10 @@
 
 		<script>
 
+			MW.install( THREE );
+
+		//
+
 			window.URL = window.URL || window.webkitURL;
 			window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
 
@@ -197,7 +201,7 @@
 				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
 			};
 
-			//
+		//
 
 			var editor = new Editor();
 

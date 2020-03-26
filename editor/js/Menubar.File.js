@@ -283,23 +283,24 @@ Menubar.File = function ( editor ) {
 
 	options.add( new UI.HorizontalRule() );
 
-	// Save app.json
+// Save app.json
 
 	var option = new UI.Row();
-	option.setClass( 'option' );
-	option.setTextContent( 'Save App As...' );
+	option.setClass( "option" );
+	option.setTextContent( "Save App" );
 	option.onClick( function () {
 
 		var output = editor.toJSON();
-		output.metadata.type = 'App';
+		output.metadata.type = "App";
 		delete output.history;
 
-		output = JSON.stringify( output, parseNumber, '\t' );
-		output = output.replace( /[\n\t]+([\d\.e\-\[\]]+)/g, '$1' );
+		output = JSON.stringify( output, parseNumber, "\t" );
+		output = output.replace( /[\n\t]+([\d\.e\-\[\]]+)/g, "$1" );
 
-		saveString( output, 'app.json' );
+		saveString( output, "app.json" );
 
-	} );
+	});
+
 	options.add( option );
 
 

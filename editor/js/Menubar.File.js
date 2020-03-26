@@ -283,6 +283,26 @@ Menubar.File = function ( editor ) {
 
 	options.add( new UI.HorizontalRule() );
 
+	// Save app.json
+
+	var option = new UI.Row();
+	option.setClass( 'option' );
+	option.setTextContent( 'Save App As...' );
+	option.onClick( function () {
+
+		var output = editor.toJSON();
+		output.metadata.type = 'App';
+		delete output.history;
+
+		output = JSON.stringify( output, parseNumber, '\t' );
+		output = output.replace( /[\n\t]+([\d\.e\-\[\]]+)/g, '$1' );
+
+		saveString( output, 'app.json' );
+
+	} );
+	options.add( option );
+
+
 	// Publish
 
 	var option = new UI.Row();
@@ -356,15 +376,15 @@ Menubar.File = function ( editor ) {
 			zip.file( 'js/app.js', content );
 
 		} );
-		loader.load( '../build/three.min.js', function ( content ) {
+		loader.load( '../js/three.js', function ( content ) {
 
-			zip.file( 'js/three.min.js', content );
+			zip.file( 'js/three.js', content );
 
 		} );
 
 		if ( vr ) {
 
-			loader.load( '../examples/js/vr/WebVR.js', function ( content ) {
+			loader.load( 'vr/WebVR.js', function ( content ) {
 
 				zip.file( 'js/WebVR.js', content );
 

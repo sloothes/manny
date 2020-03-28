@@ -267,19 +267,18 @@
 			//	Raycaster helper.
 				setTimeout(function(){
 					var raycaster = new THREE.Raycaster();
-					var intersecthelper = new THREE.Mesh(
+					var rayhelper = new THREE.Mesh(
 						new THREE.CircleBufferGeometry( 0.5, 32 ).rotateX(-Math.PI/2),
 						new THREE.MeshBasicMaterial( { color:0xffff00, wireframe:false} )
 					);
-					intersecthelper.name = "intersecthelper";
 					renderer.domElement.addEventListener("mousemove", function(e) {
 						camera.updateMatrixWorld();
 						raycaster.setFromCamera( mouse, camera );
 						var intersects = raycaster.intersectObject( ground );
 						if ( !intersects.length ) return;
-						intersecthelper.position.copy( intersects[0].point );
+						rayhelper.position.copy( intersects[0].point );
 					});
-					scene.add( intersecthelper );
+					scene.add( rayhelper );
 				});
 
 			})();
@@ -319,10 +318,10 @@
 				cameraLight.target = localPlayer;
 
 			//	Update rotation.
-			//	(function update(){
-			//		requestAnimationFrame( update );
-			//		localPlayer.rotation.y = localPlayerController.direction + Math.PI; // important!
-			//	})();
+				(function update(){
+					requestAnimationFrame( update );
+					localPlayer.rotation.y = localPlayerController.direction + Math.PI; // important!
+				})();
 
 			})();
 
@@ -491,8 +490,6 @@
 				var k = 0; // important!
 				var tab = TabUI.Debug.tab;
 
-			//	Add Player.
-
 				(function(){
 					var row = document.createElement("div");
 					var playersButton = addMorePlayersButton();
@@ -509,63 +506,63 @@
 					button.style.cssText = "min-width:60%;width:fit-content;height:40px;font-size:large;text-overflow:ellipsis;";
 					button.classList.add( "form-control", "btn", "btn-primary", "btn-white-outline", "gradient-btn" );
 
-					button.addEventListener( "click", function onButtonClickHandler(){
-					//	button.removeEventListener( "click", onButtonClickHandler );
+					button.addEventListener( "click", function onClickButtonHandler(){
+						button.removeEventListener( "click", onClickButtonHandler );
 
 						//	New player.
-						var radius = 1; // player radius.
-						var player = new THREE.Object3D();
-						player.name = "player_"+ (++k);
+							var radius = 1; // player radius.
+							var player = new THREE.Object3D();
+							player.name = "player_"+ (++k);
 						//	group.position.y = -radius;
 						//	player.add( group );
 
 						//	Random position.
-						var r = 25, p = Math.random();
-						player.position.set(
-							localPlayer.position.x + Math.floor( Math.sin( p * 2*Math.PI ) * r * Math.random() ), // random (x),
-							radius, // player radius (y),
-							localPlayer.position.z + Math.floor( Math.cos( p * 2*Math.PI ) * r * Math.random() )  // random (z),
-						);
+							var r = 25, p = Math.random();
+							player.position.set(
+								localPlayer.position.x + Math.floor( Math.sin( p * 2*Math.PI ) * r * Math.random() ), // random (x),
+								radius, // player radius (y),
+								localPlayer.position.z + Math.floor( Math.cos( p * 2*Math.PI ) * r * Math.random() )  // random (z),
+							);
 
 						//	Player helper.
-						var playerHelper = new THREE.Mesh(
+							var playerHelper = new THREE.Mesh(
 							//	new THREE.TetrahedronGeometry(radius, 1),
-							new THREE.SphereGeometry( radius, 6, 4 ),
-							new THREE.MeshBasicMaterial({ color:0xffff00, wireframe:true })
-						);
-						player.add( playerHelper );
-						playerHelper.visible = true;
-						playerHelper.name = "playerhelper_"+k;
+								new THREE.SphereGeometry( radius, 6, 4 ),
+								new THREE.MeshBasicMaterial({ color:0xffff00, wireframe:true })
+							);
+							player.add( playerHelper );
+							playerHelper.visible = true;
+							playerHelper.name = "playerhelper_"+k;
 
 						//	Player controller.
-						var playerController = new MW.CharacterController( player, radius );
-						playerController.movementSpeed = 15*Math.random();
-						world.add( playerController ); // important!
+							var playerController = new MW.CharacterController( player, radius );
+							playerController.movementSpeed = 10;
+							world.add( playerController ); // important!
 						//	cameraControls.trackObject = player; // debug!
 
 						//	Player controller random direction.
 
-						(function update(){
-							playerController.direction = randomDirection();
+							(function update(){
+								playerController.direction = randomDirection();
 							//	player.rotation.y = playerController.direction + Math.PI; // important!
-							if ( playerController.center.y < -radius ) playerController.center.set( 0, radius, 0 );
-							setTimeout( update, Math.floor( 1000 * Math.random() ) );
-						})();
+								if ( playerController.center.y < -radius ) playerController.center.set( 0, radius, 0 );
+								setTimeout( update, Math.floor( 1000 * Math.random() ) );
+							})();
 
-						function randomDirection(){
-							return 2 * Math.PI * Math.sin( 2 * Math.PI * Math.random() ); // -3.14 < number > 3.14!
-						}
+							function randomDirection(){
+								return 2 * Math.PI * Math.sin( 2 * Math.PI * Math.random() ); // -3.14 < number > 3.14!
+							}
 
-						scene.add( player );
-						playerController.isRunning = true;
+							scene.add( player );
+							playerController.isRunning = true;
+							button.addEventListener( "click", onClickButtonHandler );
 
-					//	button.addEventListener( "click", onButtonClickHandler );
 					});
 
 					return button;
 				}
 
-			//	Import Player.
+			//	Import Remote Player.
 
 				(function(){
 					var row = document.createElement("div");

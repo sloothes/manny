@@ -224,11 +224,11 @@
 				})();
 
 			//	Editor Controls.
-			//	setTimeout(function(){
-			//		controls = new THREE.EditorControls(camera, renderer.domElement);
-			//		controls.center.set(0, 10, 0);
-			//		camera.lookAt(controls.center); // important!
-			//	});
+				setTimeout(function(){
+					controls = new THREE.EditorControls(camera, renderer.domElement);
+					controls.center.set(0, 10, 0);
+					camera.lookAt(controls.center); // important!
+				});
 
 			})();
 
@@ -891,9 +891,7 @@
 
 						animationDroplist.addAnimation( clip.name, clip );
 
-						var reaction = "idling"; // debug!
-
-						AddActionButton( clip, reaction ); // debug!
+						AddActionButton( clip ); // debug!
 
 					});
 				});
@@ -915,7 +913,7 @@
 
 						var reaction = "Hit Reaction From The Front With Bow";
 
-						AddActionButton( clip, reaction ); // debug!
+						AddActionButton( clip ); // debug!
 
 					});
 				});
@@ -973,15 +971,13 @@
 				var reaction = "Hit Reaction From The Front With Bow (2)";
 				if ( !action ) return;  debugMode && console.log( action );
 
-				currentAnimation = action; // important!
+			//	if ( !isFighting ) play( action );
+			//	else fight( action, reaction );
 
-			//	if ( !isFighting ) play( currentAnimation );
-			//	else fight( currentAnimation, reaction );
-
-				playCurrentAnimation(); // debug!
+				playClickedAction( action ); // debug!
 			}
 
-			function playCurrentAnimation(){
+			function playClickedAction( action ){
 
 				var select = document.getElementById("players-droplist");
 				var animationController = select.getAnimationController( currentPlayer );
@@ -989,149 +985,27 @@
 				var container = document.getElementById("action-buttons");
 				container.removeEventListener("click", actionButtonsClickHandler );
 
-				animationController.mixer.addEventListener("loop", function onFinishAction(e){
-					animationController.mixer.removeEventListener("loop", onFinishAction);
-					setTimeout( function(){ container.addEventListener( "click", actionButtonsClickHandler ); });
-					animationController.play("idling"); 
+				animationController.mixer.addEventListener("loop", function onStartAction(e){
+					animationController.mixer.removeEventListener("loop", onStartAction);
+
+				//	setTimeout( function(){ 
+						animationController.mixer.addEventListener("loop", function onFinishAction(e){
+							animationController.mixer.removeEventListener("loop", onFinishAction);
+							setTimeout( function(){ 
+								container.addEventListener( "click", actionButtonsClickHandler ); 
+							});
+							animationController.play("idling"); 
+						});
+				//	});
+
+					animationController.play( action ); 
+					animationController.motion[ action ].reset();
 				});
 
-				animationController.motion[ currentAnimation ].reset(); 
-				animationController.play( currentAnimation ); 
-
+			//	setTimeout( function(){
+					animationController.mixer.dispatchEvent({type:"loop"});
+			//	});
 			}
-
-		</script>
-
-		<script>
-
-
-			(function(){
-
-			//	Camera controls.
-
-				cameraControls = new MW.TPSCameraControl(
-					camera, 			// three.js camera.
-					scene,				// tracking object.
-					{	
-						el: renderer.domElement,
-						offset: new THREE.Vector3( 0, 10, 0 ), // eye height.
-						radius: 34, // default distance of the character to the camera.
-						minRadius: 1,
-						maxRadius: 280,
-						rigidObjects: [],
-					}
-				);
-
-
-
-				(function update(){
-					requestAnimationFrame( update );
-					cameraControls.update();
-				})();
-
-
-			})();
-
-		//	joystickControls.
-
-			(function(){
-
-				var jumpButton;
-				var animationController;
-				var joystick1, joystick2;
-
-				var joysticControls1 = document.createElement( "div" );
-				joysticControls1.id = "joystick-controls-1";
-				joysticControls1.classList.add("joystick-controls");
-				document.body.appendChild( joysticControls1 );
-
-				var joysticControls2 = document.createElement( "div" );
-				joysticControls2.id = "joystick-controls-2";
-				joysticControls2.classList.add("joystick-controls");
-				document.body.appendChild( joysticControls2 );
-
-				var joystick1Selector  = "#joystick1";
-				var joystick2Selector  = "#joystick2";
-				var jumpButtonSelector = "#jumpButton";
-
-				var joystickControlsSelector  = ".joystick-controls";
-				var joystickControls1Selector = "#joystick-controls-1";
-				var joystickControls2Selector = "#joystick-controls-2";
-
-				joystick1  = new virtualInput.Joystick( $( joystickControls1Selector ), 94, { id: "joystick1" } );
-				joystick2  = new virtualInput.Joystick( $( joystickControls2Selector ), 94, { id: "joystick2" } );
-				jumpButton = new virtualInput.Button(   $( joystickControls1Selector ), 58, { id: "jumpButton", label: "<b>JUMP</b>" } ); // buttonSvgSrc
-
-				var select = document.getElementById("players-droplist");
-				joystick1.addEventListener( "active", function onActive() { 
-					animationController = select.getAnimationController( currentPlayer );
-				});
-
-				joystick1.addEventListener( "active", function onActive() { 
-
-				//	if (  localPlayerController.isJumping 
-				//		|| !localPlayerController.isGrounded 
-				//		|| localPlayerController.isOnSlope ) {
-				//		return;
-				//	}
-				//
-				//	localPlayerController.isRunning = true;
-
-				});
-
-				joystick1.addEventListener( "disactive", function onDisactive() { 
-
-				//	if (  localPlayerController.isJumping 
-				//		|| !localPlayerController.isGrounded 
-				//		||  localPlayerController.isOnSlope ) {
-				//		return;
-				//	}
-				//
-				//	localPlayerController.isRunning = false;
-
-				});
-
-				jumpButton.addEventListener( "press", function onPress() { 
-
-				//	if (  localPlayerController.isJumping 
-				//		|| !localPlayerController.isGrounded 
-				//		|| localPlayerController.isOnSlope ) {
-				//		return;
-				//	}
-				//
-				//	localPlayerController.jump();
-
-				});
-
-				joystick1.update = function(){
-
-					if ( this.isActive ) {
-
-						animationController.turn( (1 * Math.PI/2) - cameraControls.getFrontAngle() + this.angle, true );
-					//	localPlayerController.direction = (3 * Math.PI/2) - cameraControls.getFrontAngle() + this.angle;
-
-					}
-				};
-
-				joystick2.update = function(){
-
-				//	if ( this.isActive ) {
-				//		cameraControls.setLatLon(
-				//			cameraControls.lat + this.position.y * 0.5, // deg.
-				//			cameraControls.lon - this.position.x        // deg.
-				//		);
-				//	}
-
-				};
-
-
-				(function update(){
-					requestAnimationFrame( update );
-					joystick1.update();
-					joystick2.update();
-				})();
-				
-			})();
 
 		</script>
 
@@ -1152,8 +1026,6 @@
 				group.name = "player1";
 				group.scale.set(s,s,s); // important!
 				scene.add( group );
-
-			//	cameraControls.trackObject = group; // important!
 
 				var armature; 		// THREE.Group.
 				var bones = {}; 	// create bone options. TODO!
@@ -1234,8 +1106,6 @@
 
 				(function(){
 
-					var hipsBone = group.getObjectByName("Hips");
-
 				//	1. All motions must be set to loop, .setLoop(THREE.Loop).
 				//	2. All motions clampWhenFinished must be "false".
 				//	3. All changes (rotation, position) must happend inside a loop handler.
@@ -1243,22 +1113,17 @@
 				//	Actually animation never stops, always one animation is playing.
 
 					var positionHelper = new THREE.Mesh(
-					//	new THREE.SphereGeometry( 1, 6, 4 ),
-						new THREE.CircleBufferGeometry( 2, 8 ).rotateX(-Math.PI/2),
+						new THREE.SphereGeometry( 1, 6, 4 ),
 						new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
 					); 
 
-				//	camera controls tracking object.
-					var trackObject = new THREE.Object3D();
-					cameraControls.trackObject = trackObject; // important!
-					cameraControls.offset.y = 0;
-					scene.add( trackObject );
+					var hipsBone = group.getObjectByName("Hips");
 
-					(function update(){
-						requestAnimationFrame( update );
-						group.updateMatrixWorld(); // important!
-						trackObject.position.setFromMatrixPosition(hipsBone.matrixWorld);
-					})();
+				//	(function update(){
+				//		requestAnimationFrame( update );
+				//		group.updateMatrixWorld(); // important!
+				//		positionHelper.position.setFromMatrixPosition(hipsBone.matrixWorld);
+				//	})();
 
 					animationController.mixer.addEventListener("loop", function(e){
 					//	debugMode && console.log( e );

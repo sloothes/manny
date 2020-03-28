@@ -224,11 +224,11 @@
 				})();
 
 			//	Editor Controls.
-			//	setTimeout(function(){
-			//		controls = new THREE.EditorControls(camera, renderer.domElement);
-			//		controls.center.set(0, 10, 0);
-			//		camera.lookAt(controls.center); // important!
-			//	});
+				setTimeout(function(){
+					controls = new THREE.EditorControls(camera, renderer.domElement);
+					controls.center.set(0, 10, 0);
+					camera.lookAt(controls.center); // important!
+				});
 
 			})();
 
@@ -1004,34 +1004,6 @@
 
 		<script>
 
-
-			(function(){
-
-			//	Camera controls.
-
-				cameraControls = new MW.TPSCameraControl(
-					camera, 			// three.js camera.
-					scene,				// tracking object.
-					{	
-						el: renderer.domElement,
-						offset: new THREE.Vector3( 0, 10, 0 ), // eye height.
-						radius: 34, // default distance of the character to the camera.
-						minRadius: 1,
-						maxRadius: 280,
-						rigidObjects: [],
-					}
-				);
-
-
-
-				(function update(){
-					requestAnimationFrame( update );
-					cameraControls.update();
-				})();
-
-
-			})();
-
 		//	joystickControls.
 
 			(function(){
@@ -1062,12 +1034,10 @@
 				joystick2  = new virtualInput.Joystick( $( joystickControls2Selector ), 94, { id: "joystick2" } );
 				jumpButton = new virtualInput.Button(   $( joystickControls1Selector ), 58, { id: "jumpButton", label: "<b>JUMP</b>" } ); // buttonSvgSrc
 
-				var select = document.getElementById("players-droplist");
 				joystick1.addEventListener( "active", function onActive() { 
+					
+					var select = document.getElementById("players-droplist");
 					animationController = select.getAnimationController( currentPlayer );
-				});
-
-				joystick1.addEventListener( "active", function onActive() { 
 
 				//	if (  localPlayerController.isJumping 
 				//		|| !localPlayerController.isGrounded 
@@ -1107,13 +1077,16 @@
 
 					if ( this.isActive ) {
 
-						animationController.turn( (1 * Math.PI/2) - cameraControls.getFrontAngle() + this.angle, true );
 					//	localPlayerController.direction = (3 * Math.PI/2) - cameraControls.getFrontAngle() + this.angle;
+						
+						animationController.turn( (-3 * Math.PI/2) + this.angle );
 
 					}
 				};
 
 				joystick2.update = function(){
+					
+					return;
 
 				//	if ( this.isActive ) {
 				//		cameraControls.setLatLon(
@@ -1152,8 +1125,6 @@
 				group.name = "player1";
 				group.scale.set(s,s,s); // important!
 				scene.add( group );
-
-			//	cameraControls.trackObject = group; // important!
 
 				var armature; 		// THREE.Group.
 				var bones = {}; 	// create bone options. TODO!
@@ -1234,8 +1205,6 @@
 
 				(function(){
 
-					var hipsBone = group.getObjectByName("Hips");
-
 				//	1. All motions must be set to loop, .setLoop(THREE.Loop).
 				//	2. All motions clampWhenFinished must be "false".
 				//	3. All changes (rotation, position) must happend inside a loop handler.
@@ -1244,21 +1213,17 @@
 
 					var positionHelper = new THREE.Mesh(
 					//	new THREE.SphereGeometry( 1, 6, 4 ),
-						new THREE.CircleBufferGeometry( 2, 8 ).rotateX(-Math.PI/2),
+						new THREE.CircleBufferGeometry( 2, 16 ).rotateX(-Math.PI/2),
 						new THREE.MeshBasicMaterial({color:0xffff00,  wireframe:true})
 					); 
 
-				//	camera controls tracking object.
-					var trackObject = new THREE.Object3D();
-					cameraControls.trackObject = trackObject; // important!
-					cameraControls.offset.y = 0;
-					scene.add( trackObject );
+					var hipsBone = group.getObjectByName("Hips");
 
-					(function update(){
-						requestAnimationFrame( update );
-						group.updateMatrixWorld(); // important!
-						trackObject.position.setFromMatrixPosition(hipsBone.matrixWorld);
-					})();
+				//	(function update(){
+				//		requestAnimationFrame( update );
+				//		group.updateMatrixWorld(); // important!
+				//		positionHelper.position.setFromMatrixPosition(hipsBone.matrixWorld);
+				//	})();
 
 					animationController.mixer.addEventListener("loop", function(e){
 					//	debugMode && console.log( e );

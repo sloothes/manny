@@ -1115,6 +1115,64 @@
 
 			})();
 
+			(function(){
+
+			//  Skydome.
+
+				var loader = new THREE.TextureLoader();
+				loader.setCrossOrigin("anonymous"); // important!
+				var geometry = new THREE.SphereGeometry( 5000, 64, 32 );
+				var texture = loader.load( "/tradecenter/textures/skydome-home.jpg" );
+				var material = new THREE.MeshBasicMaterial({
+					map: texture,
+					side: THREE.DoubleSide
+				});
+				skydome = new THREE.Mesh( geometry, material );
+				skydome.scale.y = 0.5;
+				skydome.position.y = 180;
+				skydome.name = "SKYDOME";
+				scene.add(skydome);
+
+			//  Water.
+
+				var loader = new THREE.TextureLoader();
+				loader.setCrossOrigin("anonymous"); // important!
+				var waterNormals = loader.load( "/tradecenter/textures/waternormals.jpg");
+				waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
+			//	waterNormals.mapping = THREE.SphericalReflectionMapping;
+
+			//  Create the water effect.
+				water = new THREE.Water(renderer, camera, scene, {
+					textureWidth: 256,
+					textureHeight: 256,
+					waterNormals: waterNormals,
+					alpha: 1.0,
+					sunDirection: new THREE.Vector3(0,500,300).normalize(),
+					sunColor: 0xffffff,
+					waterColor: 0x001e0f,
+					betaVersion: 0,
+					side: THREE.DoubleSide
+				});
+
+				mirror = new THREE.Mesh(
+					new THREE.PlaneBufferGeometry(10000, 10000, 1, 1), 
+					water.material
+				);
+
+				mirror.add(water);
+				mirror.rotation.x = - Math.PI * 0.5;
+				mirror.position.y = 0.1;
+				scene.add(mirror);
+
+				(function render(){
+					requestAnimationFrame( render );
+					water.material.uniforms.time.value += 0.5 / 60.0;
+					water.render();
+				})();
+
+
+			})();
+
 		//	World - Octree.
 
 			(function(){
@@ -1761,71 +1819,6 @@
 
 			})();
 
-		</script>
-
-
-
-		<script>
-/*
-		//	Water.
-
-			(function(){
-
-			//  Skydome.
-
-				var loader = new THREE.TextureLoader();
-				loader.setCrossOrigin("anonymous"); // important!
-				var geometry = new THREE.SphereGeometry( 5000, 64, 32 );
-				var texture = loader.load( "/tradecenter/textures/skydome-home.jpg" );
-				var material = new THREE.MeshBasicMaterial({
-					map: texture,
-					side: THREE.DoubleSide
-				});
-				skydome = new THREE.Mesh( geometry, material );
-				skydome.scale.y = 0.5;
-				skydome.position.y = 180;
-				skydome.name = "SKYDOME";
-				scene.add(skydome);
-
-			//  Water.
-
-				var loader = new THREE.TextureLoader();
-				loader.setCrossOrigin("anonymous"); // important!
-				var waterNormals = loader.load( "/tradecenter/textures/waternormals.jpg");
-				waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
-			//	waterNormals.mapping = THREE.SphericalReflectionMapping;
-
-			//  Create the water effect.
-				water = new THREE.Water(renderer, camera, scene, {
-					textureWidth: 256,
-					textureHeight: 256,
-					waterNormals: waterNormals,
-					alpha: 1.0,
-					sunDirection: new THREE.Vector3(0,500,300).normalize(),
-					sunColor: 0xffffff,
-					waterColor: 0x001e0f,
-					betaVersion: 0,
-					side: THREE.DoubleSide
-				});
-
-				mirror = new THREE.Mesh(
-					new THREE.PlaneBufferGeometry(10000, 10000, 1, 1), 
-					water.material
-				);
-
-				mirror.add(water);
-				mirror.rotation.x = - Math.PI * 0.5;
-				mirror.position.y = 0.1;
-				scene.add(mirror);
-
-				(function render(){
-					requestAnimationFrame( render );
-					water.material.uniforms.time.value += 0.5 / 60.0;
-					water.render();
-				})();
-
-			})();
-*/
 		</script>
 
 	</body>

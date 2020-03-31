@@ -80,9 +80,8 @@
 	<body ontouchstart="">
 
 		<script src="/manny/js/three.js"></script>
-		<script src="/manny/js/cannon.js"></script>
-
 		<script src="/manny/js/TabUI.js"></script>
+		<!--script src="/manny/js/cannon.js"></script-->
 		<script src="/manny/js/MeshWalk.js"></script>
 		<script src="/manny/js/UVsDebug.js"></script>
 		<script src="/manny/js/FBXLoader.js"></script>
@@ -95,7 +94,7 @@
 		<script>
 
 			var debugMode = true; // important!
-		//	MW.install( THREE ); // important!
+			MW.install( THREE ); // important!
 		//	CameraControls.install( {THREE:THREE} ); // demo!
 		//	THREE.Pathfinding = threePathfinding.Pathfinding;
 		//	THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
@@ -220,6 +219,31 @@
 
 			})();
 
+		//	World - octree.
+
+			(function(){
+
+				world = new MW.World();
+
+				var x = 1500, y = 1500, z = 1500;
+				var min = new THREE.Vector3( -x, -y, -z );
+				var max = new THREE.Vector3(  x,  y,  z );
+				var partition = 6; // nodes: Math.pow( 8, partition )
+
+				octree = new MW.Octree( min, max, partition );
+				world.add( octree );
+
+				var clock = new THREE.Clock();
+
+				(function update(){
+					requestAnimationFrame( update );
+					var delta = clock.getDelta();
+					var elapsed = clock.getElapsedTime();
+					world.step( Math.min( delta, 0.02 ) );
+				})();
+
+			})();
+
 		//	ground.js
 
 			(function(){
@@ -227,15 +251,14 @@
 				var ground = new THREE.Mesh(
 					new THREE.PlaneGeometry( 3000, 3000, 1, 1 ).rotateX(-Math.PI/2),
 					new THREE.MeshLambertMaterial({ 
-						opacity:1, 
-						color:0x829ec4,
+						opacity:1, color:0x829ec4
 					})
 				);
 
 			//	We need only the geometry of the ground
 			//	so there is not need to add to the scene.
 			//	ground.rotation.x = -Math.PI / 2; // THREE.Math.degToRad( -90 );
-			//	octree.importThreeMesh( ground ); // important!
+				octree.importThreeMesh( ground ); // important!
 			//	scene.add( ground ); // optional!
 
 			//	Ground Helper.
@@ -246,7 +269,7 @@
 				setTimeout(function(){
 					var raycaster = new THREE.Raycaster();
 					var rayhelper = new THREE.Mesh(
-						new THREE.CircleBufferGeometry( 2, 32 ).rotateX(-Math.PI/2),
+						new THREE.CircleBufferGeometry( 0.2, 32 ).rotateX(-Math.PI/2),
 						new THREE.MeshBasicMaterial( { color:0xffff00, wireframe:false} )
 					);
 					renderer.domElement.addEventListener("mousemove", function(e) {
@@ -262,26 +285,22 @@
 			})();
 
 
+			(function(){
+
+				var geometry = new THREE.BoxGeometry(1,20,100, 1,1,1);
+				wallMeshID = geometry.uuid;
+				var material = new THREE.MeshLambertMaterial();
+				var wall = new THREE.Mesh( geometry, material );
+				wall1 = wall.clone(); wall1.position.set( 10,10,60 );
+				wall2 = wall.clone(); wall2.position.set( 10,10,-60 );
+				wall3 = wall.clone(); wall3.position.set( 50,10,0 );
+				wall4 = wall.clone(); wall4.position.set( -30,10,0 );
 
 
+				scene.add( wall1, wall2, wall3, wall4 );
+				octree.importThreeMesh( wall1, wall2 );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+			})();
 
 
 		</script>

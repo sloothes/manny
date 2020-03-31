@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+
+		<title>(playground 0.1)</title>
+
+		<meta charset="utf-8">
+		<meta name="generator" content="Three.js Editor">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+		<link rel="stylesheet" href="/css/joystick.css">
+		<link rel="stylesheet" href="/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/css/bootbox-dialoges.css">
+
+		<script src="/js/watch.js"></script>
+		<script src="/js/jquery.min.js"></script> 
+		<script src="/js/system.min.js"></script>
+		<script src="/js/signals.min.js"></script>
+		<script src="/js/inflate.min.js"></script>
+		<script src="/js/zangodb.min.js"></script>
+		<script src="/js/bootstrap.min.js"></script>
+		<script src="/js/hold-event.min.js"></script>
+
+		<style>
+
+			body {
+				font-family: sans-serif;
+				font-size: 13px;
+				background-color: #000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#loading-bar {
+				width:100%;
+				height:100%;
+				top:0; left:0;
+				position:fixed;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+			}
+
+			.middle > * {
+				top:0; 
+				left:0;
+				right:0;
+				bottom:0;
+				margin:auto;"
+				position:absolute;
+			}
+
+			#joystick1 {
+				right: calc(40px + 370px);
+			}
+			
+			#jumpButton {
+				right: calc(105px + 370px);
+			}
+
+			.btn-terrain {
+				padding:0;
+				float:left;
+				width:55px;
+				height:55px;
+				border:1px solid;
+				border-radius:4px;
+				margin-right:4px;
+				margin-bottom:4px;
+				display:inline-block;
+			}
+			
+			.btn-terrain + .btn-terrain {
+				margin-right:4px;
+			}
+
+		</style>
+	</head>
+
+	<body ontouchstart="">
+
+		<script src="/manny/js/three.js"></script>
+		<script src="/manny/js/TabUI.js"></script>
+		<!--script src="/manny/js/cannon.js"></script-->
+		<script src="/manny/js/MeshWalk.js"></script>
+		<script src="/manny/js/UVsDebug.js"></script>
+		<script src="/manny/js/FBXLoader.js"></script>
+		<script src="/manny/js/VirtualInput.js"></script>
+		<script src="/manny/js/EditorControls.js"></script>
+		<script src="/manny/js/camera-controls.js"></script>
+		<script src="/manny/js/SubdivisionModifier.js"></script>
+		<script src="/manny/js/three-pathfinding.umd.js"></script>
+
+		<script>
+
+			var debugMode = true; // important!
+			MW.install( THREE ); // important!
+		//	CameraControls.install( {THREE:THREE} ); // demo!
+		//	THREE.Pathfinding = threePathfinding.Pathfinding;
+		//	THREE.PathfindingHelper = threePathfinding.PathfindingHelper;
+			Number.prototype.format = function (){
+				return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+			};
+
+		</script>
+
+		<script>
+
+		//	TabUI
+
+			(function(){
+
+				var sidePanel = createSidePanel();
+				var loginTab = TabUI.add( "Login", "login-tab" );
+				var debugTab = TabUI.add( "Debug", "debug-tab" );
+				var levelTab = TabUI.add( "Levels", "level-tab" );
+				var cannonTab = TabUI.add( "Physics", "login-tab" );
+				var cameraTab = TabUI.add( "Camera", "camera-tab" );
+				var controlTab = TabUI.add( "Controls", "control-tab" );
+				var materialTab = TabUI.add( "Material", "material-tab" );
+				var animationTab = TabUI.add( "Animations", "animation-tab" );
+				var pathfinderTab = TabUI.add( "Pathfinder", "pathfinder-tab" );
+
+				document.body.appendChild( sidePanel );
+				TabUI.append("Physics", "Debug" );
+				TabUI.Physics.role.classList.add("active");
+				TabUI.Physics.tab.classList.add("in","active");
+
+			})();
+
+		</script>
+
+		<script>
+
+		//	Scene.
+			scene = new THREE.Scene();
+
+		//	Camera.
+			(function(){
+
+				var aspect = (window.innerWidth - 370) / window.innerHeight;
+				camera = new THREE.PerspectiveCamera( 50, aspect, 1, 10000 );
+				camera.position.set(0, 20, 50);
+
+			})();
+
+		//	Editor Controls.
+			(function(){
+				controls = new THREE.EditorControls(camera);
+				if ( controls && controls instanceof THREE.EditorControls ) {
+					camera.lookAt(controls.center); // important!
+				}
+			})();
+
+		//  Camera Light.
+			(function(){
+
+				cameraLight = new THREE.DirectionalLight( 0xdfebff, 0.75 );
+				cameraLight.position.set( 0, 500, 300 );
+				cameraLight.castShadow = true;
+				cameraLight.shadow.mapSize.width  = Math.pow(2, 10); // 2048;
+				cameraLight.shadow.mapSize.height = Math.pow(2, 10); // 2048;
+
+				var d = 30;
+				cameraLight.shadow.camera.left = - d;
+				cameraLight.shadow.camera.right = d;
+				cameraLight.shadow.camera.top = d;
+				cameraLight.shadow.camera.bottom = - d;
+				cameraLight.shadow.camera.far = 10000;
+
+				shadowHelper = new THREE.CameraHelper(cameraLight.shadow.camera);
+				shadowHelper.visible = false;
+
+				scene.add( cameraLight, shadowHelper  );
+
+				(function update(){
+					requestAnimationFrame( update );
+					cameraLight.position.copy( camera.position );
+				})();
+
+			})();
+
+		//  Renderer.
+			(function(){
+
+				renderer = new THREE.WebGLRenderer({
+					antialias: true,
+					preserveDrawingBuffer: true,
+				});
+
+				renderer.gammaInput = true;
+				renderer.gammaOutput = true;
+				renderer.shadowMap.enabled = true;
+				renderer.setClearColor( 0x000000 );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( (window.innerWidth - 370), window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				window.addEventListener("resize", function onWindowResize() {
+					renderer.setSize( (window.innerWidth - 370), window.innerHeight );
+				});
+
+				window.addEventListener("resize", function onWindowResize() {
+					camera.aspect = renderer.domElement.clientWidth / renderer.domElement.clientHeight;
+					camera.updateProjectionMatrix();
+				});
+
+				mouse = new THREE.Vector2();
+
+				renderer.domElement.addEventListener("mousemove", function(e) {
+					mouse.x = ( e.clientX / this.clientWidth ) * 2 - 1;
+					mouse.y = - ( e.clientY / this.clientHeight ) * 2 + 1;
+				});
+
+				(function render(){
+					requestAnimationFrame( render );
+					renderer.render( scene, camera );
+				})();
+
+			})();
+
+		//	World - octree.
+
+			(function(){
+
+				world = new MW.World();
+
+				var x = 1500, y = 1500, z = 1500;
+				var min = new THREE.Vector3( -x, -y, -z );
+				var max = new THREE.Vector3(  x,  y,  z );
+				var partition = 6; // nodes: Math.pow( 8, partition )
+
+				octree = new MW.Octree( min, max, partition );
+				world.add( octree );
+
+				var clock = new THREE.Clock();
+
+				(function update(){
+					requestAnimationFrame( update );
+					var delta = clock.getDelta();
+					var elapsed = clock.getElapsedTime();
+					world.step( Math.min( delta, 0.02 ) );
+				})();
+
+			})();
+
+		//	ground.js
+
+			(function(){
+
+				var ground = new THREE.Mesh(
+					new THREE.PlaneGeometry( 3000, 3000, 1, 1 ).rotateX(-Math.PI/2),
+					new THREE.MeshLambertMaterial({ 
+						opacity:1, color:0x829ec4
+					})
+				);
+
+			//	We need only the geometry of the ground
+			//	so there is not need to add to the scene.
+			//	ground.rotation.x = -Math.PI / 2; // THREE.Math.degToRad( -90 );
+				octree.importThreeMesh( ground ); // important!
+			//	scene.add( ground ); // optional!
+
+			//	Ground Helper.
+				groundHelper = new THREE.GridHelper( 3000, 300, 0x444444, 0x444444 );
+				scene.add( groundHelper );
+
+			//	Raycaster helper.
+				setTimeout(function(){
+					var raycaster = new THREE.Raycaster();
+					var rayhelper = new THREE.Mesh(
+						new THREE.CircleBufferGeometry( 0.2, 32 ).rotateX(-Math.PI/2),
+						new THREE.MeshBasicMaterial( { color:0xffff00, wireframe:false} )
+					);
+					renderer.domElement.addEventListener("mousemove", function(e) {
+						camera.updateMatrixWorld();
+						raycaster.setFromCamera( mouse, camera );
+						var intersects = raycaster.intersectObject( ground );
+						if ( !intersects.length ) return;
+						rayhelper.position.copy( intersects[0].point );
+					});
+					scene.add( rayhelper );
+				});
+
+			})();
+
+
+			(function(){
+
+				var geometry = new THREE.BoxGeometry(1,20,100, 1,1,1);
+				wallMeshID = geometry.uuid;
+				var material = new THREE.MeshLambertMaterial();
+				var wall = new THREE.Mesh( geometry, material );
+				wall1 = wall.clone(); wall1.position.set( 10,10,60 );
+				wall2 = wall.clone(); wall2.position.set( 10,10,-60 );
+				wall3 = wall.clone(); wall3.position.set( 50,10,0 );
+				wall4 = wall.clone(); wall4.position.set( -30,10,0 );
+
+
+				scene.add( wall1, wall2, wall3, wall4 );
+				octree.importThreeMesh( wall1, wall2 );
+
+			})();
+
+
+		</script>
+
+	</body>
+</html>

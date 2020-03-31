@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 
-		<title>(playground 0.1)</title>
+		<title>(water demo)</title>
 
 		<meta charset="utf-8">
 		<meta name="generator" content="Three.js Editor">
@@ -81,7 +81,7 @@
 
 		<script src="/manny/js/three.js"></script>
 		<script src="/manny/js/TabUI.js"></script>
-		<!--script src="/manny/js/cannon.js"></script-->
+		<script src="/manny/js/cannon.js"></script>
 		<script src="/manny/js/MeshWalk.js"></script>
 		<script src="/manny/js/UVsDebug.js"></script>
 		<script src="/manny/js/FBXLoader.js"></script>
@@ -90,6 +90,9 @@
 		<script src="/manny/js/camera-controls.js"></script>
 		<script src="/manny/js/SubdivisionModifier.js"></script>
 		<script src="/manny/js/three-pathfinding.umd.js"></script>
+
+		<script src="/manny/js/Reflector.js"></script>
+		<script src="/manny/js/Water2.js"></script>
 
 		<script>
 
@@ -114,7 +117,8 @@
 				var loginTab = TabUI.add( "Login", "login-tab" );
 				var debugTab = TabUI.add( "Debug", "debug-tab" );
 				var levelTab = TabUI.add( "Levels", "level-tab" );
-				var cannonTab = TabUI.add( "Physics", "login-tab" );
+				var wallsTab = TabUI.add( "Walls", "walls-tab" );
+				var boxesTab = TabUI.add( "Boxes", "boxes-tab" );
 				var cameraTab = TabUI.add( "Camera", "camera-tab" );
 				var controlTab = TabUI.add( "Controls", "control-tab" );
 				var materialTab = TabUI.add( "Material", "material-tab" );
@@ -122,9 +126,9 @@
 				var pathfinderTab = TabUI.add( "Pathfinder", "pathfinder-tab" );
 
 				document.body.appendChild( sidePanel );
-				TabUI.append("Physics", "Debug" );
-				TabUI.Physics.role.classList.add("active");
-				TabUI.Physics.tab.classList.add("in","active");
+				TabUI.append("Boxes", "Walls", "Debug" );
+				TabUI.Boxes.role.classList.add("active");
+				TabUI.Boxes.tab.classList.add("in","active");
 
 			})();
 
@@ -283,9 +287,37 @@
 				});
 
 			})();
-
+			
+		//	Water.
 
 			(function(){
+
+				var waterGeometry = new THREE.PlaneBufferGeometry( 3000, 3000 );
+
+				water = new THREE.Water( waterGeometry, {
+					scale: 4,
+					color: "#ffffff",
+					flowDirection: new THREE.Vector2( 1, 1 ),
+					textureWidth: 1024,
+					textureHeight: 1024
+				});
+
+				water.position.y = 0;
+				water.rotation.x = -Math.PI/2;
+				scene.add( water );
+
+
+
+
+
+
+			})();
+
+		</script>
+
+		<script>
+
+			function wallsdemo(){
 
 				var geometry = new THREE.BoxGeometry(1,20,100, 1,1,1);
 				wallMeshID = geometry.uuid;
@@ -296,11 +328,10 @@
 				wall3 = wall.clone(); wall3.position.set( 50,10,0 );
 				wall4 = wall.clone(); wall4.position.set( -30,10,0 );
 
-
 				scene.add( wall1, wall2, wall3, wall4 );
-				octree.importThreeMesh( wall1, wall2 );
+				octree.importThreeMesh( wall1, wall2, wall3, wall4 );
 
-			})();
+			}
 
 
 		</script>

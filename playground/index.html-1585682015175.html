@@ -289,14 +289,11 @@
 
 			})();
 			
+		//	Water.
 
-		</script>
+			(function(){
 
-		<script>
-
-			function waterdemo(width, deepth, y){
-
-				var waterGeometry = new THREE.PlaneBufferGeometry( width, deepth );
+				var waterGeometry = new THREE.PlaneBufferGeometry( 1000, 1000 );
 
 				water = new THREE.Water( waterGeometry, {
 					scale: 1,
@@ -306,11 +303,20 @@
 					textureHeight: 1024
 				});
 
-				water.position.y = y;
+				water.position.y = 0;
 				water.rotation.x = -Math.PI/2;
 				scene.add( water );
 
-			}
+
+
+
+
+
+			})();
+
+		</script>
+
+		<script>
 
 			function wallsdemo(){
 

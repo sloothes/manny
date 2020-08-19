@@ -1121,6 +1121,8 @@
 										localPlayer.position.z + Math.floor( Math.cos( p * 2*Math.PI ) * r ), // random z,
 									);
 
+									scene.add( player );
+
 								//	Player helper.
 									var playerHelper = new THREE.Mesh(
 										new THREE.TetrahedronGeometry(10, 1),
@@ -1134,7 +1136,6 @@
 									if ( group.children.find( function( item ){
 										return item.type == "SkinnedMesh";
 									}) ) playerHelper.visible = false;
-
 									player.add( playerHelper );
 
 								//	Remote player controller.
@@ -1208,7 +1209,7 @@
 										playerController.isRunning = true;
 									});
 									
-									scene.add( player );
+								//	scene.add( player );
 
 								}, false );
 								reader.readAsArrayBuffer( file );
